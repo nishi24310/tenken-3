@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>IE KEIKAKU 点検報告書</title>
+<style>
+:root {
+  --navy: #1a3a5c;
+  --navy2: #2a5a8c;
+  --gold: #c8952a;
+  --ok: #2d7a4e;
+  --warn: #c87820;
+  --danger: #c0392b;
+  --na: #888;
+  --bg: #f2f4f7;
+  --card: #fff;
+  --border: #dce1e9;
+  --text: #1e2d3d;
+  --muted: #6b7c93;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;background:var(--bg);color:var(--text);font-size:15px;min-height:100vh;padding-bottom:40px;}
+
+/* ヘッダー */
+.hdr{background:var(--navy);color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.25);}
+.hdr-logo{font-size:10px;letter-spacing:2px;opacity:.6;margin-bottom:2px;}
+.hdr-title{font-size:17px;font-weight:800;letter-spacing:.5px;}
+
+/* ステップバー */
+.steps{display:flex;background:var(--navy2);overflow-x:auto;scrollbar-width:none;}
+.steps::-webkit-scrollbar{display:none;}
+.step{flex:0 0 auto;padding:9px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,.45);white-space:nowrap;border-bottom:3px solid transparent;cursor:pointer;transition:all .2s;}
+.step.on{color:#fff;border-bottom-color:var(--gold);}
+.step.done{color:rgba(255,255,255,.7);}
+
+/* メイン */
+.main{padding:16px;max-width:600px;margin:0 auto;}
+.page{display:none;}
+.page.on{display:block;}
+
+/* セクションタイトル */
+.sec-title{font-size:15px;font-weight:800;color:var(--navy);border-bottom:2px solid var(--navy);padding-bottom:7px;margin-bottom:14px;}
+
+/* カード */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;}
+.card-hd{background:var(--navy);color:#fff;padding:9px 14px;font-size:12px;font-weight:700;letter-spacing:.5px;}
+.card-bd{padding:14px 16px;}
+
+/* フォーム */
+label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;margin-top:12px;}
+label:first-child{margin-top:0;}
+input[type=text],input[type=tel],input[type=email],textarea,select{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;
+  font-size:15px;font-family:inherit;color:var(--text);background:#fff;
+  -webkit-appearance:none;outline:none;transition:border-color .2s;}
+input:focus,textarea:focus,select:focus{border-color:var(--navy);}
+textarea{min-height:72px;resize:vertical;}
+
+/* 点検種別チップ */
+.type-row{display:flex;gap:8px;flex-wrap:wrap;}
+.type-chip{padding:9px 18px;border:2px solid var(--border);border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);background:#fff;transition:all .15s;font-family:inherit;}
+.type-chip.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+/* 点検期別チップ */
+.rep-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.rep-chip{padding:7px 14px;border:2px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;color:var(--muted);background:#fff;transition:all .15s;font-family:inherit;}
+.rep-chip.on{background:var(--gold);border-color:var(--gold);color:#fff;}
+
+/* 点検アイテムカード */
+.icard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;border:1.5px solid var(--border);overflow:hidden;}
+.icard.na{opacity:.5;}
+.icard-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:#f7f8fa;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.icard-label{font-weight:800;font-size:14px;color:var(--navy);}
+.icard-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.icard-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;white-space:nowrap;}
+.b-ok{background:#e6f4ec;color:var(--ok);}
+.b-warn{background:#fef3e2;color:var(--warn);}
+.b-danger{background:#fde8e6;color:var(--danger);}
+.b-na{background:#efefef;color:var(--na);}
+.b-none{background:#eef0f3;color:#aaa;}
+.arr{font-size:16px;color:var(--muted);transition:transform .2s;margin-left:8px;}
+.icard.closed .arr{transform:rotate(-90deg);}
+.icard.closed .icard-bd{display:none;}
+.icard-bd{padding:13px 14px;}
+
+/* NA トグル */
+.na-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f7f8fa;border-radius:8px;cursor:pointer;user-select:none;font-size:12px;font-weight:700;color:var(--muted);}
+.sw{width:40px;height:22px;background:var(--border);border-radius:11px;position:relative;transition:background .2s;flex-shrink:0;}
+.sw::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.na-row.on .sw{background:var(--na);}
+.na-row.on .sw::after{left:21px;}
+
+/* ステータスボタン */
+.st-row{display:flex;gap:8px;margin:11px 0 10px;}
+.st-btn{flex:1;padding:9px 4px;border:2px solid var(--border);border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;text-align:center;font-family:inherit;color:var(--muted);background:#fff;transition:all .15s;}
+.st-btn:active{transform:scale(.96);}
+.st-btn.ok{background:#e6f4ec;border-color:var(--ok);color:var(--ok);}
+.st-btn.warn{background:#fef3e2;border-color:var(--warn);color:var(--warn);}
+.st-btn.danger{background:#fde8e6;border-color:var(--danger);color:var(--danger);}
+
+/* 写真 */
+.photo-area{margin-top:10px;}
+.photo-lbl{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:7px;}
+.photo-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;}
+.photo-thumb{position:relative;width:90px;height:90px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-del{position:absolute;top:2px;right:2px;width:20px;height:20px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;}
+.add-photo{display:flex;align-items:center;gap:8px;width:100%;padding:10px 13px;background:#f0f4f8;border:2px dashed var(--border);border-radius:8px;color:var(--navy);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* サマリバー */
+.sum-bar{background:var(--card);border-radius:var(--radius);padding:11px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);}
+.sum-counts{display:flex;gap:14px;}
+.sc{text-align:center;}
+.sc-n{font-size:19px;font-weight:900;}
+.sc-l{font-size:10px;color:var(--muted);}
+.sc.ok .sc-n{color:var(--ok);}
+.sc.warn .sc-n{color:var(--warn);}
+.sc.ng .sc-n{color:var(--danger);}
+
+/* ナビ */
+.nav{display:flex;gap:10px;margin-top:18px;}
+.btn{flex:1;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s;}
+.btn:active{transform:scale(.97);}
+.btn-p{background:var(--navy);color:#fff;}
+.btn-s{background:#fff;color:var(--navy);border:2px solid var(--navy);flex:0 0 76px;}
+.btn-pdf{background:var(--gold);color:#fff;}
+.btn-g{background:var(--ok);color:#fff;}
+
+/* 確認サマリ */
+.conf-row{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px;line-height:1.7;}
+.conf-lbl{color:var(--muted);font-weight:700;}
+.issue-item{padding:7px 11px;background:#fff8f0;border-radius:7px;margin-bottom:6px;font-size:12px;border-left:3px solid var(--warn);}
+.issue-item.ng{border-left-color:var(--danger);background:#fdf0ef;}
+
+/* 完了 */
+.done-card{background:var(--card);border-radius:var(--radius);padding:32px 20px;text-align:center;box-shadow:var(--shadow);}
+.done-icon{font-size:56px;margin-bottom:14px;}
+.done-title{font-size:20px;font-weight:900;color:var(--navy);margin-bottom:8px;}
+.done-sub{color:var(--muted);font-size:13px;line-height:1.7;}
+
+/* ローディング */
+.loading{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;flex-direction:column;align-items:center;justify-content:center;color:#fff;}
+.loading.on{display:flex;}
+.spin{width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;margin-bottom:14px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* トースト */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:#222;color:#fff;padding:11px 22px;border-radius:30px;font-size:13px;font-weight:700;z-index:1000;transition:transform .3s;white-space:nowrap;}
+.toast.on{transform:translateX(-50%) translateY(0);}
+
+/* PDF出力用（印刷時のみ表示） */
+@media print{
+  .hdr,.steps,.nav,.add-photo,.photo-del,.na-row,.st-btn,.loading,.toast{display:none!important;}
+  .page{display:block!important;}
+  #page0,#page1,#page2,#page3,#pageDone{display:none!important;}
+  #pagePdf{display:block!important;}
+  body{background:#fff;padding:0;}
+  .pdf-wrap{max-width:100%;}
+}
+.pdf-wrap{display:none;}
+
+/* CSV読み込み関連 */
+.csv-btn{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;background:linear-gradient(135deg,#1a3a5c,#2a5a8c);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;margin-bottom:12px;}
+.csv-btn span{font-size:18px;}
+.csv-hint{font-size:11px;color:var(--muted);background:#f0f4f8;border-radius:8px;padding:9px 12px;margin-bottom:14px;line-height:1.6;}
+.search-wrap{position:relative;margin-bottom:8px;}
+.search-wrap input{padding-right:36px;}
+.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;line-height:1;}
+.cust-list{max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;background:#fff;}
+.cust-item{padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.cust-item:last-child{border-bottom:none;}
+.cust-item:active{background:#f0f4f8;}
+.cust-name{font-weight:800;font-size:14px;color:var(--navy);}
+.cust-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.cust-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px;}
+.csv-loaded{background:#e8f4ec;border-radius:8px;padding:9px 12px;font-size:12px;color:var(--ok);font-weight:700;margin-bottom:12px;display:none;}
+.selected-cust{background:#f0f4ff;border:1.5px solid var(--navy2);border-radius:8px;padding:10px 13px;margin-bottom:10px;display:none;}
+.selected-cust-name{font-weight:800;font-size:14px;color:var(--navy);}
+.selected-cust-meta{font-size:11px;color:var(--muted);margin-top:3px;}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading"><div class="spin"></div><div id="loading-txt">生成中...</div></div>
+<div class="toast" id="toast"></div>
+
+<div class="hdr">
+  <div class="hdr-logo">■ IE KEIKAKU</div>
+  <div class="hdr-title" id="hdr-title">点検報告書作成</div>
+</div>
+<div class="steps" id="steps">
+  <div class="step on" onclick="goPage(0)">①基本情報</div>
+  <div class="step" onclick="goPage(1)">②外部点検</div>
+  <div class="step" onclick="goPage(2)">③内部点検</div>
+  <div class="step" onclick="goPage(3)">④確認・出力</div>
+</div>
+
+<div class="main">
+
+<!-- ========== PAGE 0: 基本情報 ========== -->
+<div class="page on" id="page0">
+  <div class="sec-title">📋 基本情報入力</div>
+
+  <div class="card">
+    <div class="card-hd">点検種別・報告種別</div>
+    <div class="card-bd">
+      <label>点検種別</label>
+      <div class="type-row">
+        <div class="type-chip on" onclick="setType(this,'新築')">新築</div>
+        <div class="type-chip" onclick="setType(this,'リフォーム')">リフォーム</div>
+      </div>
+      <label style="margin-top:14px;">報告種別</label>
+      <div class="rep-row" id="rep-row">
+        <div class="rep-chip on" onclick="setRep(this,'1年')">1年点検</div>
+        <div class="rep-chip" onclick="setRep(this,'2年')">2年点検</div>
+        <div class="rep-chip" onclick="setRep(this,'5年')">5年点検</div>
+        <div class="rep-chip" onclick="setRep(this,'10年')">10年点検</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">お客様情報</div>
+    <div class="card-bd">
+
+      <!-- CSV読み込みエリア -->
+      <div class="csv-loaded" id="csv-loaded" style="display:block;">✅ <span id="csv-count">1476</span>件の顧客データ収録済み</div>
+      <details style="margin-bottom:10px;">
+        <summary style="font-size:11px;color:var(--muted);cursor:pointer;padding:6px 0;">📂 管理者：顧客リストを更新する</summary>
+        <div style="padding:10px 0 4px;">
+          <button class="csv-btn" style="background:var(--muted);" onclick="document.getElementById('csv-file').click()">
+            <span>📂</span> CSVファイルで上書き更新
+          </button>
+          <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSV(this)">
+          <div class="csv-hint">更新後はページを閉じないでください。<br>毎月の更新はHTMLファイルごと差し替えてください。</div>
+        </div>
+      </details>
+
+      <!-- 検索ボックス -->
+      <div id="csv-search-area" style="display:block;margin-bottom:12px;">
+        <label>顧客を検索（名前・No・住所）</label>
+        <div class="search-wrap">
+          <input type="text" id="cust-search" placeholder="名前・No・住所で検索..."
+            oninput="searchCustomers(this.value)"
+            onchange="searchCustomers(this.value)"
+            id="cust-search">
+          <button class="search-clear" onclick="clearSearch()">×</button>
+        </div>
+        <div class="cust-list" id="cust-list">
+          <div class="cust-empty">検索すると顧客が表示されます</div>
+        </div>
+      </div>
+
+      <!-- 選択済み顧客表示 -->
+      <div class="selected-cust" id="selected-cust">
+        <div class="selected-cust-name" id="sel-name-disp"></div>
+        <div class="selected-cust-meta" id="sel-meta-disp"></div>
+        <button style="margin-top:8px;padding:5px 12px;background:none;border:1.5px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;color:var(--muted);" onclick="clearSelectedCustomer()">別の顧客を選ぶ</button>
+      </div>
+
+      <!-- 手動入力フォーム -->
+      <div id="manual-form">
+        <label>No.</label>
+        <input type="text" id="f-no" placeholder="例：401205">
+        <label>お客様氏名</label>
+        <input type="text" id="f-name" placeholder="例：加藤 征馬">
+        <label>住所</label>
+        <input type="text" id="f-addr" placeholder="例：旭川市末広5条9丁目5-7">
+        <label>電話番号</label>
+        <input type="tel" id="f-tel" placeholder="例：090-0000-0000">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">担当者情報</div>
+    <div class="card-bd">
+      <label>営業担当</label>
+      <input type="text" id="f-sales" placeholder="例：松井">
+      <label>点検担当</label>
+      <input type="text" id="f-insp" placeholder="例：武隈">
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="btn btn-p" onclick="goPage(1)">外部点検へ →</button>
+  </div>
+</div>
+
+<!-- ========== PAGE 1: 外部点検 ========== -->
+<div class="page" id="page1">
+  <div class="sec-title">🏠 外部点検</div>
+  <div class="sum-bar">
+    <div style="font-size:12px;color:var(--muted);">記入状況</div>
+    <div class="sum-counts">
+      <div class="sc ok"><div class="sc-n" id="e-ok">0</div><div class="sc-l">問題なし</div></div>
+      <div class="sc warn"><div class="sc-n" id="e-warn">0</div><div class="sc-l">要注意</div></div>
+      <div class="sc ng"><div class="sc-n" id="e-ng">0</div><div class="sc-l">要修繕</div></div>
+    </div>
+  </div>
+  <div id="ext-items"></div>
+  <div class="nav">
+    <button class="btn btn-s" onclick="goPage(0)">←</button>
+    <button class="btn btn-p" onclick="goPage(2)">内部点検へ →</button>
+  </div>
+</div>
+
+<!-- ========== PAGE 2: 内部点検 ========== -->
+<div class="page" id="page2">
+  <div class="sec-title">🏡 内部点検</div>
+  <div class="sum-bar">
+    <div style="font-size:12px;color:var(--muted);">記入状況</div>
+    <div class="sum-counts">
+      <div class="sc ok"><div class="sc-n" id="i-ok">0</div><div class="sc-l">問題なし</div></div>
+      <div class="sc warn"><div class="sc-n" id="i-warn">0</div><div class="sc-l">要注意</div></div>
+      <div class="sc ng"><div class="sc-n" id="i-ng">0</div><div class="sc-l">要修繕</div></div>
+    </div>
+  </div>
+  <div id="int-items"></div>
+  <div class="nav">
+    <button class="btn btn-s" onclick="goPage(1)">←</button>
+    <button class="btn btn-p" onclick="goPage(3)">確認へ →</button>
+  </div>
+</div>
+
+<!-- ========== PAGE 3: 確認・出力 ========== -->
+<div class="page" id="page3">
+  <div class="sec-title">📄 確認・出力</div>
+
+  <div class="card">
+    <div class="card-hd">総合コメント</div>
+    <div class="card-bd">
+      <textarea id="f-comment" placeholder="全体的な所見・お客様へのメッセージ等"></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">送信内容確認</div>
+    <div class="card-bd" id="conf-body"></div>
+  </div>
+
+  <div class="nav" style="flex-direction:column;gap:10px;">
+    <button class="btn btn-pdf" onclick="outputPdf(false)">📄 お客様用PDF（写真なし）を開く</button>
+    <button class="btn btn-g" onclick="outputPdf(true)">📁 保管用PDF（写真あり）を開く</button>
+    <button class="btn btn-s" style="flex:none;width:100%;" onclick="goPage(2)">← 戻る</button>
+  </div>
+  <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;">PDFが開いたら「共有」または「印刷」でLINE/メールに送れます</p>
+</div>
+
+<!-- ========== PAGE DONE ========== -->
+<div class="page" id="pageDone">
+  <div class="done-card">
+    <div class="done-icon">✅</div>
+    <div class="done-title">完了</div>
+    <div class="done-sub">PDFを出力しました。<br>共有・印刷してご利用ください。</div>
+    <button class="btn btn-s" style="margin-top:20px;width:100%;flex:none;" onclick="location.reload()">新しい点検を開始</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// 点検項目定義
+// ============================================================
+const EXT = [
+  {key:'exterior_wall', label:'外壁・防水', hint:'傷・汚れ・欠け、塗り壁の割れ・クラック・劣化'},
+  {key:'tile',          label:'タイル・左官', hint:'傷・破損、土間モルタルの汚れ・クラック'},
+  {key:'roof',          label:'屋根・バルコニー', hint:'すが漏り', is2y:true},
+  {key:'ext_other',     label:'外部その他', hint:'アスファルト・物置・カーポート・防草シート・スギナ'},
+  {key:'maint_ext',     label:'メンテ状況等（外）', hint:'デッキ・木柱・梁・ウッドフェンス等の割れ・変形・劣化'},
+];
+const INT = [
+  {key:'entrance',      label:'玄関ドア・サッシ', hint:'傷・汚れ・欠け'},
+  {key:'fixtures',      label:'建具', hint:'傷・軽微な隙間・反り'},
+  {key:'interior',      label:'内装仕上', hint:'傷・汚れ・隙間、乾燥によるライン・隙間'},
+  {key:'underfloor',    label:'床下', hint:'（2年点検）', is2y:true},
+  {key:'equipment',     label:'設備機器', hint:'説明書による維持管理'},
+  {key:'int_other',     label:'内部その他', hint:'排水管の詰まり、階段・枠材等の乾燥による隙間'},
+  {key:'maint_int',     label:'メンテ状況等（内）', hint:'給気口・排気口・レンジフード等の清掃確認'},
+];
+const ALL = [...EXT, ...INT];
+
+// ============================================================
+// 状態
+// ============================================================
+const S = {
+  type: '新築',
+  rep: '1年',
+  items: {},   // key → {status, note, isNA}
+  photos: {},  // key → [{dataUrl, mimeType}]
+};
+
+// ============================================================
+// 初期化
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  renderItems('ext-items', EXT);
+  renderItems('int-items', INT);
+});
+
+// ============================================================
+// 種別・期別
+// ============================================================
+function setType(el, val) {
+  S.type = val;
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  // リフォームは屋根・床下をデフォルトNA
+  if (val === 'リフォーム') {
+    setNA('roof', true); setNA('underfloor', true);
+  } else {
+    setNA('roof', false); setNA('underfloor', false);
+  }
+  // 報告種別を切り替え
+  const repRow = document.getElementById('rep-row');
+  if (val === 'リフォーム') {
+    repRow.innerHTML = `
+      <div class="rep-chip on" onclick="setRep(this,'半年')">半年点検</div>
+      <div class="rep-chip" onclick="setRep(this,'1年')">1年点検</div>
+      <div class="rep-chip" onclick="setRep(this,'2年')">2年点検</div>`;
+    S.rep = '半年';
+  } else {
+    repRow.innerHTML = `
+      <div class="rep-chip on" onclick="setRep(this,'1年')">1年点検</div>
+      <div class="rep-chip" onclick="setRep(this,'2年')">2年点検</div>
+      <div class="rep-chip" onclick="setRep(this,'5年')">5年点検</div>
+      <div class="rep-chip" onclick="setRep(this,'10年')">10年点検</div>`;
+    S.rep = '1年';
+  }
+}
+
+function setRep(el, val) {
+  S.rep = val;
+  document.querySelectorAll('.rep-chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// ============================================================
+// 点検項目レンダリング
+// ============================================================
+function renderItems(containerId, items) {
+  document.getElementById(containerId).innerHTML = items.map(itemCard).join('');
+}
+
+function itemCard(item) {
+  return `
+  <div class="icard" id="ic_${item.key}">
+    <div class="icard-hd" onclick="toggleCard('${item.key}')">
+      <div>
+        <div class="icard-label">${item.label}${item.is2y ? '<span style="font-size:9px;color:var(--warn);margin-left:5px;font-weight:400;">2年点検</span>' : ''}</div>
+        <div class="icard-sub">${item.hint}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="icard-badge b-none" id="badge_${item.key}">未記入</span>
+        <span class="arr">▾</span>
+      </div>
+    </div>
+    <div class="icard-bd">
+      <div class="na-row" id="na_${item.key}" onclick="toggleNA('${item.key}')">
+        <div class="sw"></div><span>この項目は該当なし</span>
+      </div>
+      <div id="st_${item.key}" style="margin-top:11px;">
+        <div class="st-row">
+          <button class="st-btn" onclick="setSt('${item.key}','問題なし')">✅ 問題なし</button>
+          <button class="st-btn" onclick="setSt('${item.key}','要注意')">⚠️ 要注意</button>
+          <button class="st-btn" onclick="setSt('${item.key}','要修繕')">🔴 要修繕</button>
+        </div>
+        <textarea placeholder="状況・説明（任意）" id="note_${item.key}"
+          oninput="setNote('${item.key}',this.value)" rows="2"></textarea>
+        <div class="photo-area">
+          <div class="photo-lbl">📷 写真</div>
+          <div class="photo-grid" id="pg_${item.key}"></div>
+          <button class="add-photo" onclick="addPhoto('${item.key}')">＋ 写真を追加</button>
+          <input type="file" id="fi_${item.key}" accept="image/*" multiple style="display:none"
+            onchange="onPhoto('${item.key}',this)">
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(key) {
+  document.getElementById('ic_' + key).classList.toggle('closed');
+}
+
+// ============================================================
+// ステータス・メモ・NA
+// ============================================================
+function setSt(key, st) {
+  if (!S.items[key]) S.items[key] = {};
+  S.items[key].status = st;
+  updateBadge(key); updateCounts();
+  const area = document.getElementById('st_' + key);
+  if (!area) return;
+  area.querySelectorAll('.st-btn').forEach(b => {
+    b.className = 'st-btn';
+    if (b.textContent.includes('問題なし') && st === '問題なし') b.classList.add('ok');
+    if (b.textContent.includes('要注意') && st === '要注意') b.classList.add('warn');
+    if (b.textContent.includes('要修繕') && st === '要修繕') b.classList.add('danger');
+  });
+}
+
+function setNote(key, val) {
+  if (!S.items[key]) S.items[key] = {};
+  S.items[key].note = val;
+}
+
+function toggleNA(key) { setNA(key, !(S.items[key]?.isNA || false)); }
+
+function setNA(key, val) {
+  if (!S.items[key]) S.items[key] = {};
+  S.items[key].isNA = val;
+  if (val) S.items[key].status = '該当なし';
+  else if (S.items[key].status === '該当なし') S.items[key].status = '';
+  const naEl = document.getElementById('na_' + key);
+  const stEl = document.getElementById('st_' + key);
+  const ic   = document.getElementById('ic_' + key);
+  if (naEl) naEl.classList.toggle('on', val);
+  if (stEl) { stEl.style.opacity = val ? '.4' : '1'; stEl.style.pointerEvents = val ? 'none' : ''; }
+  if (ic)   ic.classList.toggle('na', val);
+  updateBadge(key); updateCounts();
+}
+
+function updateBadge(key) {
+  const b = document.getElementById('badge_' + key);
+  if (!b) return;
+  const it = S.items[key] || {};
+  const st = it.isNA ? '該当なし' : (it.status || '');
+  b.className = 'icard-badge';
+  if (st === '問題なし') { b.classList.add('b-ok');   b.textContent = '✅ 問題なし'; }
+  else if (st === '要注意') { b.classList.add('b-warn'); b.textContent = '⚠️ 要注意'; }
+  else if (st === '要修繕') { b.classList.add('b-danger'); b.textContent = '🔴 要修繕'; }
+  else if (st === '該当なし') { b.classList.add('b-na'); b.textContent = '－ 該当なし'; }
+  else { b.classList.add('b-none'); b.textContent = '未記入'; }
+}
+
+function updateCounts() {
+  const cnt = (items, pfx) => {
+    let ok=0,w=0,ng=0;
+    items.forEach(i => {
+      const s = S.items[i.key];
+      if (!s || s.isNA) return;
+      if (s.status==='問題なし') ok++;
+      else if (s.status==='要注意') w++;
+      else if (s.status==='要修繕') ng++;
+    });
+    document.getElementById(pfx+'-ok').textContent = ok;
+    document.getElementById(pfx+'-warn').textContent = w;
+    document.getElementById(pfx+'-ng').textContent = ng;
+  };
+  cnt(EXT,'e'); cnt(INT,'i');
+}
+
+// ============================================================
+// 写真
+// ============================================================
+function addPhoto(key) { document.getElementById('fi_' + key).click(); }
+
+function onPhoto(key, input) {
+  if (!S.photos[key]) S.photos[key] = [];
+  Array.from(input.files).forEach(f => {
+    const r = new FileReader();
+    r.onload = e => {
+      S.photos[key].push({ dataUrl: e.target.result, mimeType: f.type });
+      renderPhotoGrid(key);
+    };
+    r.readAsDataURL(f);
+  });
+  input.value = '';
+}
+
+function renderPhotoGrid(key) {
+  const grid = document.getElementById('pg_' + key);
+  const photos = S.photos[key] || [];
+  grid.innerHTML = photos.map((p,i) => `
+    <div class="photo-thumb">
+      <img src="${p.dataUrl}">
+      <button class="photo-del" onclick="delPhoto('${key}',${i})">×</button>
+    </div>`).join('');
+}
+
+function delPhoto(key, idx) {
+  S.photos[key].splice(idx, 1);
+  renderPhotoGrid(key);
+}
+
+// ============================================================
+// ページ移動
+// ============================================================
+function goPage(n) {
+  const pages = ['page0','page1','page2','page3','pageDone'];
+  pages.forEach((id,i) => {
+    document.getElementById(id)?.classList.toggle('on', i === n);
+  });
+  document.querySelectorAll('.step').forEach((s,i) => {
+    s.classList.remove('on','done');
+    if (i === n) s.classList.add('on');
+    else if (i < n) s.classList.add('done');
+  });
+  if (n === 3) buildConf();
+  window.scrollTo(0,0);
+}
+
+// ============================================================
+// 確認ページ
+// ============================================================
+function buildConf() {
+  const name = v('f-name') || '（未入力）';
+  const issues = ALL.filter(i => {
+    const s = S.items[i.key];
+    return s && (s.status === '要注意' || s.status === '要修繕');
+  });
+  let html = `<div class="conf-row">
+    <span class="conf-lbl">顧客</span><span>${name} 様（No.${v('f-no')||'－'}）</span>
+    <span class="conf-lbl">住所</span><span>${v('f-addr')||'－'}</span>
+    <span class="conf-lbl">点検種別</span><span>${S.type}　${S.rep}点検</span>
+    <span class="conf-lbl">担当</span><span>営業:${v('f-sales')||'－'}　点検:${v('f-insp')||'－'}</span>
+  </div>`;
+  if (issues.length) {
+    html += `<div style="margin-top:12px;font-weight:800;font-size:12px;color:var(--danger);margin-bottom:6px;">⚠️ 要対応 ${issues.length}件</div>`;
+    issues.forEach(i => {
+      const s = S.items[i.key];
+      html += `<div class="issue-item${s.status==='要修繕'?' ng':''}">${s.status==='要修繕'?'🔴':'⚠️'} <b>${i.label}</b>：${s.note||s.status}</div>`;
+    });
+  } else {
+    html += `<div style="margin-top:12px;color:var(--ok);font-weight:800;font-size:13px;">✅ 要対応項目なし</div>`;
+  }
+  const totalPhotos = Object.values(S.photos).reduce((s,a)=>s+a.length,0);
+  html += `<div style="margin-top:10px;font-size:11px;color:var(--muted);">📷 写真 ${totalPhotos}枚</div>`;
+  document.getElementById('conf-body').innerHTML = html;
+}
+
+// ============================================================
+// PDF出力
+// ============================================================
+function outputPdf(withPhotos) {
+  const html = buildPdfHtml(withPhotos);
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function v(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+function buildPdfHtml(withPhotos) {
+  const today = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+
+  const buildRow = (item) => {
+    const it = S.items[item.key] || {};
+    const isNA = it.isNA || false;
+    const st = isNA ? '該当なし' : (it.status || '');
+    const note = it.note || '';
+    const stIcon = st==='問題なし' ? '<span style="color:#2d7a4e;font-weight:bold;">✅ 問題なし</span>'
+                 : st==='要注意'   ? '<span style="color:#c87820;font-weight:bold;">⚠️ 要注意</span>'
+                 : st==='要修繕'   ? '<span style="color:#c0392b;font-weight:bold;">🔴 要修繕</span>'
+                 : st==='該当なし' ? '<span style="color:#888;">－ 該当なし</span>'
+                 : '<span style="color:#aaa;">－</span>';
+
+    let photoHtml = '';
+    if (withPhotos) {
+      const photos = S.photos[item.key] || [];
+      if (photos.length) {
+        // 写真を横2列グリッドで表示。縦横比を保ったまま幅120px固定
+        photoHtml = '<div style="display:flex;flex-wrap:wrap;gap:3px;">' +
+          photos.map(p => `<img src="${p.dataUrl}" style="width:120px;height:90px;object-fit:contain;background:#f4f4f4;border:1px solid #ddd;display:block;">`).join('') +
+          '</div>';
+      } else {
+        photoHtml = '<span style="color:#bbb;font-size:10px;">写真なし</span>';
+      }
+    } else {
+      photoHtml = '<span style="color:#bbb;font-size:10px;">（保管用PDFに掲載）</span>';
+    }
+
+    // 写真ありの場合は写真列を広く、なしの場合は狭く
+    const photoColW = withPhotos ? '250px' : '130px';
+
+    return `<tr>
+      <td style="padding:6px 8px;border:1px solid #ccc;font-weight:bold;background:#f5f7fa;width:110px;font-size:10.5px;vertical-align:top;">${item.label}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;font-size:10.5px;white-space:nowrap;vertical-align:top;">${stIcon}</td>
+      <td style="padding:6px 8px;border:1px solid #ccc;font-size:10.5px;vertical-align:top;">${note}</td>
+      <td style="padding:4px 5px;border:1px solid #ccc;width:${photoColW};vertical-align:top;">${photoHtml}</td>
+    </tr>`;
+  };
+
+  const badgeStyle = withPhotos
+    ? 'background:#1a3a5c;color:#fff;padding:2px 10px;border-radius:4px;font-size:10px;margin-left:10px;font-weight:bold;'
+    : 'background:#c8952a;color:#fff;padding:2px 10px;border-radius:4px;font-size:10px;margin-left:10px;font-weight:bold;';
+  const badgeText = withPhotos ? '保管用（写真あり）' : 'お客様用';
+
+  return `<!DOCTYPE html>
+<html lang="ja"><head><meta charset="UTF-8">
+<style>
+  @page{size:A4;margin:15mm 12mm;}
+  body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;font-size:11px;color:#222;margin:0;padding:0;}
+  .wrap{max-width:720px;margin:0 auto;}
+  h1{font-size:15px;text-align:center;border-bottom:2.5px solid #1a3a5c;padding-bottom:7px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;}
+  .ht{width:100%;border-collapse:collapse;margin-bottom:12px;}
+  .ht td{padding:5px 8px;border:1px solid #ccc;font-size:10.5px;vertical-align:top;}
+  .ht .lbl{background:#f0f3f7;font-weight:bold;width:72px;}
+  .sec{background:#1a3a5c;color:#fff;padding:5px 10px;margin:12px 0 0;font-weight:bold;font-size:10.5px;}
+  table.it{width:100%;border-collapse:collapse;table-layout:fixed;}
+  table.it th{background:#e8edf2;padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:10.5px;font-weight:bold;}
+  .logo{font-weight:bold;font-size:12px;color:#1a3a5c;margin-bottom:4px;}
+  .sign{margin-top:16px;border:1px solid #ccc;padding:9px 12px;font-size:10.5px;}
+  .foot{margin-top:10px;text-align:right;font-size:9px;color:#aaa;}
+</style>
+</head><body><div class="wrap">
+<div class="logo">■ IE KEIKAKU</div>
+<h1>${S.rep}点検報告書<span style="${badgeStyle}">${badgeText}</span></h1>
+<table class="ht">
+  <tr>
+    <td class="lbl">No.</td><td style="width:80px;">${v('f-no')}</td>
+    <td class="lbl">氏名</td><td><b>${v('f-name')}</b> 様</td>
+    <td class="lbl">点検種別</td><td style="width:60px;">${S.type}</td>
+  </tr>
+  <tr>
+    <td class="lbl">住所</td><td colspan="3">${v('f-addr')}</td>
+    <td class="lbl">点検日</td><td>${today}</td>
+  </tr>
+  <tr>
+    <td class="lbl">営業担当</td><td>${v('f-sales')}</td>
+    <td class="lbl">点検担当</td><td>${v('f-insp')}</td>
+    <td class="lbl">連絡先</td><td>${v('f-tel')}</td>
+  </tr>
+</table>
+
+<div class="sec">【外部点検】</div>
+<table class="it">
+  <tr>
+    <th style="width:110px;">点検項目</th>
+    <th style="width:100px;">状態</th>
+    <th>状況・説明</th>
+    <th style="width:${withPhotos?'250px':'130px'};">写真</th>
+  </tr>
+  ${EXT.map(buildRow).join('')}
+</table>
+
+<div class="sec">【内部点検】</div>
+<table class="it">
+  <tr>
+    <th style="width:110px;">点検項目</th>
+    <th style="width:100px;">状態</th>
+    <th>状況・説明</th>
+    <th style="width:${withPhotos?'250px':'130px'};">写真</th>
+  </tr>
+  ${INT.map(buildRow).join('')}
+</table>
+
+${v('f-comment') ? `<div class="sec">【総合コメント】</div>
+<p style="padding:8px;border:1px solid #ccc;font-size:10.5px;margin:0;">${v('f-comment')}</p>` : ''}
+
+<div class="sign">
+  <p>※上記の点検について説明を受けました。</p>
+  <p style="margin-top:10px;">${today}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;氏名：${v('f-name')}</p>
+</div>
+<div class="foot">IE KEIKAKU 点検報告システム</div>
+</div></body></html>`;
+}
+
+// ============================================================
+// スマホ日本語入力対応（Safari/iOS）
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('cust-search');
+  if (!inp) return;
+  // 日本語変換確定時に検索実行
+  inp.addEventListener('compositionend', function() {
+    searchCustomers(this.value);
+  });
+  // 検索ボックスにフォーカス時、既存テキストがあれば検索
+  inp.addEventListener('focus', function() {
+    if (this.value) searchCustomers(this.value);
+  });
+});
+
+// ============================================================
+// CSV読み込み・顧客検索
+// ============================================================
+var custDB = [{"no": "400001", "name": "奥山 昭太", "addr": "旭川市永山6条17丁目1-25", "tel": ""}, {"no": "400002", "name": "小笠 敦", "addr": "旭川市末広東1条9丁目12-1", "tel": ""}, {"no": "400003", "name": "松川 和靖", "addr": "旭川市春光6条6丁目2-14", "tel": ""}, {"no": "400004", "name": "小林 勝", "addr": "士別市西3条19丁目463-198", "tel": ""}, {"no": "400005", "name": "平田 宏一", "addr": "士別市西3条19丁目463-191", "tel": ""}, {"no": "400006", "name": "霍田 葉子", "addr": "芦別市上芦別38-537", "tel": ""}, {"no": "400007", "name": "佐藤 修一", "addr": "札幌市白石区川下4条2丁目2-22", "tel": ""}, {"no": "400008", "name": "古谷 浩一", "addr": "札幌市手稲区前田9条19丁目1-24", "tel": ""}, {"no": "400009", "name": "媚山 正人", "addr": "旭川市東旭川北1条6丁目6-51", "tel": ""}, {"no": "400010", "name": "佐々木 良隆", "addr": "旭川市春光6条6丁目2-1", "tel": ""}, {"no": "400011", "name": "西中 教夫", "addr": "旭川市春光6条6丁目2-12", "tel": "080-5588-8624"}, {"no": "400012", "name": "吉田 英樹", "addr": "名寄市豊栄136-82", "tel": ""}, {"no": "400013", "name": "石黒 淳", "addr": "上川郡東神楽町北1条西2丁目10-9", "tel": "090-8279-8412"}, {"no": "400014", "name": "千葉 達哉", "addr": "旭川市永山5条23丁目2-1", "tel": ""}, {"no": "400015", "name": "古髙 尚之", "addr": "旭川市東旭川北3条5丁目7-15", "tel": ""}, {"no": "400016", "name": "三浦 政敏", "addr": "上川郡愛別町北町288-17", "tel": ""}, {"no": "400017", "name": "辻並 浩樹", "addr": "旭川市神居6条2丁目3-16", "tel": ""}, {"no": "400018", "name": "河本 弘", "addr": "江別市東野幌町19-20", "tel": ""}, {"no": "400019", "name": "吉田 猛", "addr": "旭川市春光2条9丁目7-11", "tel": ""}, {"no": "400021", "name": "齋藤 直樹", "addr": "旭川市春光6条1丁目9-6", "tel": ""}, {"no": "400022", "name": "大熊 喜佐子", "addr": "上川郡当麻町宇園別２区", "tel": ""}, {"no": "400023", "name": "中山 裕子", "addr": "旭川市旭岡2丁目9-34", "tel": "090-2077-1909"}, {"no": "400024", "name": "西岡 政信", "addr": "旭川市神楽岡5条5丁目", "tel": "090-9516-5431"}, {"no": "400025", "name": "森 優子", "addr": "空知郡上富良野町旭町1丁目3-23", "tel": "090-2050-6231"}, {"no": "400026", "name": "祐成 敦", "addr": "旭川市東4条4丁目1-6", "tel": "090-1309-5741"}, {"no": "400027", "name": "岡崎 浩光", "addr": "上川郡東神楽町南2条西2丁目2番7号", "tel": ""}, {"no": "400028", "name": "佐藤 正友", "addr": "旭川市春光6条6丁目2-16", "tel": ""}, {"no": "400029", "name": "中村 弘樹", "addr": "旭川市春光6条6丁目2-3", "tel": ""}, {"no": "400030", "name": "工藤 秀敏", "addr": "旭川市春光6条6丁目2-6", "tel": ""}, {"no": "400031", "name": "武藤 公明", "addr": "旭川市春光6条6丁目2-4", "tel": ""}, {"no": "400032", "name": "大阪 徳美", "addr": "旭川市末広3条4丁目7-2", "tel": "090-3897-6479"}, {"no": "400033", "name": "川島 優子", "addr": "旭川市末広6条1丁目6-6", "tel": ""}, {"no": "400034", "name": "高橋 靖敏", "addr": "旭川市神楽5条14丁目2-5", "tel": "090-1307-1036"}, {"no": "400035", "name": "岩下 由佳理", "addr": "旭川市大町2条5丁目21-329", "tel": ""}, {"no": "400038", "name": "田中 弘子", "addr": "旭川市末広5条8丁目1-14", "tel": ""}, {"no": "400038", "name": "ひかり美容室", "addr": "旭川市末広5条8丁目", "tel": ""}, {"no": "400039", "name": "戸出 大泉", "addr": "帯広市東13条南5丁目3番地", "tel": ""}, {"no": "400040", "name": "東明調剤薬局", "addr": "帯広市東13条南5丁目3番地", "tel": ""}, {"no": "400041", "name": "佐々木 勝憲", "addr": "上川郡東神楽町北1条東2丁目4-1", "tel": ""}, {"no": "400042", "name": "阿部 学", "addr": "旭川市春光6条2丁目1-10", "tel": "080-6079-1515"}, {"no": "400043", "name": "谷井 朋美", "addr": "旭川市春光6条6丁目2-10", "tel": ""}, {"no": "400044", "name": "日蔭 幸司", "addr": "旭川市春光6条6丁目3-3", "tel": ""}, {"no": "400045", "name": "伊藤 洋輔", "addr": "旭川市神居7条13丁目2-17", "tel": ""}, {"no": "400046", "name": "梅澤 健志", "addr": "旭川市春光5区1条2丁目322", "tel": ""}, {"no": "400047", "name": "佐々木 直人", "addr": "旭川市永山5条22丁目1-9", "tel": ""}, {"no": "400048", "name": "山田 篤範", "addr": "旭川市永山8条17丁目1-18", "tel": ""}, {"no": "400049", "name": "森田 勲", "addr": "札幌市南区真駒内泉町3丁目4-14", "tel": ""}, {"no": "400050", "name": "信田 年弐", "addr": "旭川市東光15条8丁目1-20", "tel": ""}, {"no": "400051", "name": "坂野 貢", "addr": "滝川市中島町3丁目7-24", "tel": ""}, {"no": "400052", "name": "岩﨑 恭治", "addr": "中川郡音威子府村字音威子府186-25", "tel": ""}, {"no": "400053", "name": "秋田 健一", "addr": "札幌市南区川沿12条3丁目9-1", "tel": ""}, {"no": "400054", "name": "川島 鉄雄", "addr": "旭川市末広1条3丁目1-12", "tel": ""}, {"no": "400055", "name": "高階 俊彦", "addr": "旭川市神楽岡11条7丁目3-15", "tel": "090-9510-4144"}, {"no": "400056", "name": "児島 卓", "addr": "上川郡鷹栖町南1条6丁目4-7", "tel": "090-5953-5898"}, {"no": "400057", "name": "石前 恭弘", "addr": "旭川市大町1条12丁目97", "tel": "090-3898-4523"}, {"no": "400058", "name": "木村 淳子", "addr": "旭川市東旭川町下兵村123-12", "tel": ""}, {"no": "400059", "name": "さかじり内科小児科", "addr": "旭川市豊岡6条4丁目11-6", "tel": ""}, {"no": "400060", "name": "スペースエイジ", "addr": "旭川市豊岡9条10丁目2-13", "tel": ""}, {"no": "400061", "name": "瀬戸 勇", "addr": "旭川市永山10条5丁目3-19", "tel": ""}, {"no": "400062", "name": "小西 惠子", "addr": "旭川市末広1条12丁目4-2", "tel": ""}, {"no": "400063", "name": "佐藤 一博", "addr": "富良野市北斗町10-13", "tel": ""}, {"no": "400064", "name": "村山 政次郎", "addr": "旭川市神居3条11丁目2-23", "tel": ""}, {"no": "400065", "name": "茂手木 純史", "addr": "旭川市永山7条12丁目5-15", "tel": "090-5077-7751"}, {"no": "400066", "name": "佐藤 久二郎", "addr": "旭川市神楽岡10条1丁目6-7", "tel": ""}, {"no": "400067", "name": "坂尻 覚", "addr": "旭川市豊岡6条4丁目11-6", "tel": ""}, {"no": "400068", "name": "さかじり内科小児科", "addr": "旭川市豊岡6条4丁目11-6", "tel": ""}, {"no": "400069", "name": "大塚 哲也", "addr": "旭川市忠和3条1丁目8-20", "tel": "０９０－１６４０－６４５２"}, {"no": "400070", "name": "平成堂調剤薬局1条店", "addr": "旭川市1条通18丁目", "tel": "090-3019-1816"}, {"no": "400071", "name": "武田 信克", "addr": "旭川市神居6条6丁目1-4", "tel": "090-6991-8158"}, {"no": "400072", "name": "瓢子 良之", "addr": "旭川市秋月1条1丁目2-6", "tel": "０９０－８８９７－４８２３"}, {"no": "400073", "name": "金丸 徹", "addr": "旭川市春光台3条1丁目6-9", "tel": "080-5595-3434"}, {"no": "400074", "name": "小村 景司", "addr": "旭川市宮前通東4155番地の1 36街区の10", "tel": "090-9753-7577"}, {"no": "400075", "name": "衛藤 貴章", "addr": "上川郡鷹栖町北野東4条3丁目6-5", "tel": "090-9430-3190"}, {"no": "400076", "name": "篠原 純也", "addr": "旭川市東旭川北1条5丁目3-10", "tel": ""}, {"no": "400077", "name": "長根 忠人", "addr": "旭川市東光3条3丁目3-22", "tel": "090-5950-3135"}, {"no": "400078", "name": "佐藤 栄一", "addr": "札幌市南区藻岩下4丁目1-10", "tel": ""}, {"no": "400079", "name": "花井 七郎", "addr": "旭川市東鷹栖3線19号5979-9", "tel": "０９０－３１１３－３６３６"}, {"no": "400080", "name": "北山 善昭", "addr": "旭川市旭神2条1丁目1-10", "tel": "090-3897-5489"}, {"no": "400081", "name": "松橋 映子", "addr": "留萌市幸町4丁目14-2", "tel": ""}, {"no": "400081", "name": "松橋 秀和", "addr": "留萌市幸町4丁目14-2", "tel": "０９０－８４２８－２２８７"}, {"no": "400082", "name": "西尾 満", "addr": "旭川市豊岡7条1丁目3-11", "tel": ""}, {"no": "400083", "name": "布浦 善裕", "addr": "旭川市春光6条1丁目4-15", "tel": ""}, {"no": "400084", "name": "鈴木 英二", "addr": "旭川市春光6条1丁目4-13", "tel": ""}, {"no": "400085", "name": "麓 紀久", "addr": "札幌市西区西野8条1丁目1-17", "tel": "080-1005-1565"}, {"no": "400086", "name": "平間 保男", "addr": "上川郡鷹栖町北野東4条3丁目6-6", "tel": ""}, {"no": "400087", "name": "東海林 拓哉", "addr": "旭川市春光4条5丁目2-28", "tel": "080-5595-1736"}, {"no": "400088", "name": "齋藤 勇", "addr": "富良野市字北大沼２", "tel": "090-8425-5455"}, {"no": "400089", "name": "長谷 智行", "addr": "深川市3条14番15号", "tel": ""}, {"no": "400090", "name": "越智 京哉", "addr": "旭川市春光6条1丁目4-16", "tel": ""}, {"no": "400091", "name": "佐々木 典朗", "addr": "旭川市東旭川町日ノ出280番地", "tel": "090-2816-6915"}, {"no": "400092", "name": "類瀬 明義", "addr": "上川郡鷹栖町北野東4条3丁目7-6", "tel": "０９０－８６３２－３３９７"}, {"no": "400093", "name": "高橋 和義", "addr": "旭川市神楽岡11条8丁目1-2", "tel": "090-3897-0477"}, {"no": "400094", "name": "小林 雄二", "addr": "雨竜郡妹背牛町妹背牛234番地の2", "tel": ""}, {"no": "400095", "name": "甲斐 浩", "addr": "旭川市忠和5条1丁目2-6", "tel": "090-5220-9773"}, {"no": "400096", "name": "中瀬 浩貴", "addr": "旭川市東旭川南1条7丁目8-16", "tel": "080-6645-8679"}, {"no": "400097", "name": "松浦 勲", "addr": "旭川市春光台2条5丁目3-7", "tel": ""}, {"no": "400098", "name": "小竹 一也", "addr": "旭川市大町1条11丁目97番地", "tel": ""}, {"no": "400099", "name": "牧野 俊信", "addr": "帯広市自由ヶ丘3丁目10番地1", "tel": "090-6445-7468"}, {"no": "400100", "name": "高成 宏士", "addr": "旭川市川端町4条10丁目1-7", "tel": "090-8426-9052"}, {"no": "400101", "name": "曽根 紘", "addr": "名寄市西5条北1丁目24", "tel": ""}, {"no": "400102", "name": "関崎 俊哉", "addr": "旭川市東光19条5丁目6-8", "tel": ""}, {"no": "400103", "name": "鏑木 秀俊", "addr": "旭川市豊岡7条3丁目3-16", "tel": "090-3390-7788"}, {"no": "400104", "name": "笠井 和喜", "addr": "旭川市春光6条1丁目4-19", "tel": "0166-54-0324"}, {"no": "400105", "name": "梶原 勇", "addr": "上川郡鷹栖町北野東4条3丁目7-5", "tel": ""}, {"no": "400106", "name": "虻川 謙", "addr": "旭川市東光18条8丁目2-32", "tel": "090-1384-3003"}, {"no": "400107", "name": "倉持 正郎", "addr": "旭川市神楽岡9条6丁目2-4", "tel": ""}, {"no": "400108", "name": "窪田 貴倫", "addr": "旭川市末広2条1丁目4-10", "tel": "090-3394-7195"}, {"no": "400109", "name": "一関 真希夫", "addr": "旭川市春光6条1丁目4-18", "tel": "090-8634-9349"}, {"no": "400110", "name": "星川 智美", "addr": "旭川市秋月1条2丁目1-9", "tel": "090-8271-9934"}, {"no": "400111", "name": "垣下 秋広", "addr": "旭川市忠和7条3丁目5-8", "tel": "090-5228-3659"}, {"no": "400112", "name": "小林 正樹", "addr": "旭川市大町1条12丁目97-314", "tel": ""}, {"no": "400113", "name": "(有)十仁薬局", "addr": "旭川市1条通8丁目右7号 西武ﾊﾟｰｷﾝｸﾞ2F", "tel": "090-3395-3149"}, {"no": "400114", "name": "柿崎 ちかみ", "addr": "旭川市春光6条1丁目4-17", "tel": ""}, {"no": "400115", "name": "守屋 悦子", "addr": "苫小牧市大成町2丁目7-16", "tel": "090-9750-4860"}, {"no": "400116", "name": "横井 秀行", "addr": "旭川市東光3条10丁目3-1", "tel": ""}, {"no": "400117", "name": "筧 昌利", "addr": "旭川市永山10条14丁目2-28", "tel": "080-5585-0014"}, {"no": "400118", "name": "髙崎 雅彦", "addr": "旭川市春光6条2丁目1-9", "tel": ""}, {"no": "400119", "name": "斉藤 忠", "addr": "旭川市春光6条3丁目7-21", "tel": "090-6262-5288"}, {"no": "400120", "name": "川上 克徳", "addr": "旭川市神居1条16丁目2-15", "tel": "０９０－８２７１－８０２４"}, {"no": "400121", "name": "神谷 雅和", "addr": "旭川市豊岡10条11丁目2-10", "tel": ""}, {"no": "400122", "name": "瀧澤 克己", "addr": "旭川市神楽７条８丁目1-3", "tel": "090-6873-0820"}, {"no": "400123", "name": "米沢 典晃", "addr": "旭川市東鷹栖4条4丁目639-325", "tel": "090-1643-1788"}, {"no": "400124", "name": "田中 良憲", "addr": "旭川市神居4条16丁目1-23", "tel": ""}, {"no": "400125", "name": "下村 政弘", "addr": "旭川市永山6条15丁目8-11", "tel": ""}, {"no": "400126", "name": "蓮沼 誠", "addr": "旭川市末広3条8丁目9-6", "tel": "090-7641-1304"}, {"no": "400127", "name": "佐藤 豊明", "addr": "中川郡美深町東6条北2丁目293-41", "tel": "090-8706-7569"}, {"no": "400128", "name": "舟木 技斗", "addr": "旭川市春光2条8丁目4-12", "tel": ""}, {"no": "400129", "name": "佐藤 岳人", "addr": "旭川市春光6条1丁目4-11", "tel": "090-8905-0924"}, {"no": "400130", "name": "飯野 正弘", "addr": "旭川市東光19条8丁目69-12", "tel": ""}, {"no": "400131", "name": "井筒 春香", "addr": "上川郡鷹栖町北野東5条3丁目7-13", "tel": "090-2879-1185"}, {"no": "400132", "name": "遠藤 直俊", "addr": "旭川市永山7条12丁目5-5", "tel": ""}, {"no": "400133", "name": "上村 三千代", "addr": "上川郡比布町緑町2丁目2-12", "tel": "090-3897-7145"}, {"no": "400134", "name": "畠山 貴義", "addr": "旭川市東光17条8丁目63-32", "tel": "090-1300-3182"}, {"no": "400135", "name": "鈴木 清史", "addr": "旭川市大町1条9丁目20-118", "tel": "090-9526-0416"}, {"no": "400136", "name": "大橋 克幸", "addr": "士別市西4条11丁目272-8", "tel": "090-6691-1541"}, {"no": "400137", "name": "田中 茂王", "addr": "旭川市東光18条8丁目3-4", "tel": ""}, {"no": "400138", "name": "小川 琢司", "addr": "旭川市豊岡9条6丁目3-11", "tel": ""}, {"no": "400139", "name": "麻生 裕幸", "addr": "帯広市西7条南15丁目2番地", "tel": "090-8905-7238"}, {"no": "400140", "name": "下地 雅光", "addr": "旭川市東光19条8丁目69-30", "tel": ""}, {"no": "400141", "name": "近藤 康雄", "addr": "旭川市東光17条8丁目63-75", "tel": "090-6440-5717"}, {"no": "400142", "name": "菖蒲 誠", "addr": "旭川市東光18条8丁目66-42", "tel": ""}, {"no": "400143", "name": "横内 弘和", "addr": "旭川市春光6条1丁目4-14", "tel": "090-8425-1225"}, {"no": "400144", "name": "安田 重春", "addr": "旭川市春光台4条1丁目2-3", "tel": ""}, {"no": "400145", "name": "瀧野 誠治", "addr": "旭川市緑が丘5条4丁目2-8", "tel": "090-6990-0601"}, {"no": "400146", "name": "高濱 心護", "addr": "名寄市緑丘37-28", "tel": "090-7515-2384"}, {"no": "400147", "name": "鬼頭 清貴", "addr": "旭川市豊岡11条8丁目4-7", "tel": "090-2818-3720"}, {"no": "400148", "name": "野上 英志", "addr": "江別市大麻ひかり町24-7", "tel": "090-6262-9858"}, {"no": "400149", "name": "山本 啓二", "addr": "旭川市末広1条8丁目9-10", "tel": ""}, {"no": "400150", "name": "三浦 孝仁", "addr": "旭川市永山10条14丁目5-29", "tel": "090-2694-6548"}, {"no": "400151", "name": "原田 智晃", "addr": "旭川市豊岡13条3丁目1-5", "tel": ""}, {"no": "400152", "name": "花木 新一", "addr": "上川郡鷹栖町南1条6丁目4-5", "tel": ""}, {"no": "400153", "name": "西里 卓", "addr": "旭川市東光７条2丁目3-20", "tel": "090-9511-7857"}, {"no": "400154", "name": "㈱緑建産業", "addr": "旭川市永山8条13丁目8-27", "tel": "０９０－５９５４－９６１４"}, {"no": "400155", "name": "早川 勲", "addr": "旭川市豊岡9条3丁目5-5", "tel": "０９０－３０１９－４８６６"}, {"no": "400156", "name": "小川 慶浩", "addr": "旭川市東光5条2丁目2-1", "tel": "090-2054-9800"}, {"no": "400157", "name": "菅野 和生", "addr": "滝川市中島町3丁目6-16", "tel": "090-6218-5018"}, {"no": "400158", "name": "田中 信", "addr": "富良野市北斗町9-20", "tel": ""}, {"no": "400159", "name": "髙橋 嘉久", "addr": "旭川市旭岡2丁目1-23", "tel": ""}, {"no": "400160", "name": "岩田 孝行", "addr": "旭川市大町1条8丁目20-42", "tel": ""}, {"no": "400161", "name": "沖 賢司", "addr": "旭川市大町1条12丁目97-316", "tel": "080-5582-1116"}, {"no": "400162", "name": "田口 智康", "addr": "旭川市東光19条8丁目69-46", "tel": ""}, {"no": "400164", "name": "菊地 徹", "addr": "旭川市神楽7条13丁目6-11", "tel": ""}, {"no": "400165", "name": "古草 勝", "addr": "天塩郡幌延町宮園町18-2", "tel": "090-1523-6409"}, {"no": "400166", "name": "広瀬 雅紀", "addr": "旭川市末広3条9丁目2-5", "tel": "090-6263-4463"}, {"no": "400167", "name": "越智 貢", "addr": "旭川市豊岡11条5丁目2-10", "tel": "090-5956-0709"}, {"no": "400168", "name": "斉藤 大介", "addr": "上川郡鷹栖町北野東4条3丁目2-2", "tel": "090-6691-8134"}, {"no": "400169", "name": "坂本 英幸", "addr": "旭川市末広3条6丁目3-14", "tel": "090-2692-7936"}, {"no": "400170", "name": "江刺 誠治", "addr": "旭川市台場2条2丁目8-12", "tel": "090-1305－5166"}, {"no": "400171", "name": "花輪 正行", "addr": "旭川市末広2条3丁目4-21", "tel": "090-5956-3647"}, {"no": "400172", "name": "大竹 竜太郎", "addr": "旭川市東光19条8丁目69-31", "tel": ""}, {"no": "400173", "name": "岡本 武", "addr": "旭川市春光台1条5丁目1-5", "tel": "090-6212-7295"}, {"no": "400174", "name": "鈴木 博幸", "addr": "旭川市神居8条4丁目1-3", "tel": ""}, {"no": "400175", "name": "高原 聡", "addr": "旭川市神居5条12丁目3-4", "tel": ""}, {"no": "400176", "name": "藤村 善隆", "addr": "旭川市大町1条12丁目97-135", "tel": "090-1522-4066"}, {"no": "400177", "name": "廣瀬 正昭", "addr": "旭川市東旭川南1条4丁目7-17", "tel": ""}, {"no": "400178", "name": "浜田 裕", "addr": "旭川市末広1条3丁目2-25", "tel": "090-3468-5051"}, {"no": "400179", "name": "山崎 春美", "addr": "旭川市大町1条9丁目20-126", "tel": "0166-52-1883"}, {"no": "400180", "name": "石崎 彰", "addr": "旭川市東光18条8丁目3-35", "tel": ""}, {"no": "400181", "name": "立井 進", "addr": "旭川市永山6条14丁目1-19", "tel": ""}, {"no": "400182", "name": "山内 和恵", "addr": "旭川市春光台1条1丁目4-22", "tel": "090-6219-2169"}, {"no": "400183", "name": "青山 幸一", "addr": "旭川市旭町1条5丁目2604-3", "tel": "090-2879-5966"}, {"no": "400184", "name": "本荘 忠大", "addr": "旭川市神楽岡11条3丁目4-2", "tel": ""}, {"no": "400185", "name": "川上 憲裕", "addr": "旭川市西御料3条2丁目6-22", "tel": ""}, {"no": "400186", "name": "高沢 豊志", "addr": "札幌市東区本町1条6丁目4-6", "tel": ""}, {"no": "400187", "name": "西田 誉士光", "addr": "札幌市西区西野7条1丁目4-12", "tel": "090-1522-5893"}, {"no": "400188", "name": "佐近 勝", "addr": "中川郡音威子府村字音威子府333", "tel": "090-8709-3042"}, {"no": "400189", "name": "小山 達也", "addr": "夕張郡長沼町しらかば1丁目2-2", "tel": "090-3774-5281"}, {"no": "400190", "name": "西島 優", "addr": "旭川市春光台5条1丁目12-8", "tel": "０９０－２０５４９－４５６９"}, {"no": "400191", "name": "笹川 英樹", "addr": "雨竜郡秩父別町字秩父別1326-14", "tel": "090-8903-2666"}, {"no": "400192", "name": "渋谷 千里", "addr": "旭川市北門町21丁目2168", "tel": "090-5227-9267"}, {"no": "400193", "name": "半田 和尊", "addr": "旭川市豊岡6条10丁目2-9", "tel": "０９０－１３８０－５６３２"}, {"no": "400194", "name": "髙山 節子", "addr": "旭川市永山14条3丁目4-20", "tel": "090-7870-3820"}, {"no": "400195", "name": "小田嶋 智一", "addr": "旭川市東光18条8丁目3-2", "tel": ""}, {"no": "400196", "name": "川野 修", "addr": "旭川市東光19条8丁目1-8", "tel": "090-5953-4623"}, {"no": "400197", "name": "勝本 宏之", "addr": "旭川市南6条通25丁目102-60", "tel": "090-2690-9585"}, {"no": "400198", "name": "石黒 浩司", "addr": "旭川市東光18条8丁目3-39", "tel": "090-2055-6972"}, {"no": "400199", "name": "山下 孝典", "addr": "名寄市西12条南11丁目75-61", "tel": "01654-2-1201"}, {"no": "400200", "name": "光永 孝志", "addr": "岩見沢市1条東17丁目55番地", "tel": "090-7511-3802"}, {"no": "400201", "name": "安栄 良悟", "addr": "旭川市西御料2条1丁目7-5", "tel": "090-8709-5207"}, {"no": "400202", "name": "門間 憲一", "addr": "苫前郡羽幌町栄町103-9", "tel": ""}, {"no": "400203", "name": "大野 雄二", "addr": "旭川市東光19条8丁目1-7", "tel": ""}, {"no": "400204", "name": "服部 博和", "addr": "札幌市北区新川3条6丁目8-13", "tel": "090-2053-0639"}, {"no": "400206", "name": "山崎 美幸", "addr": "上川郡当麻町4条西3丁目1-16", "tel": "090-8635-8794"}, {"no": "400207", "name": "炭谷 貴博", "addr": "枝幸郡中頓別町字中頓別296-10", "tel": "090-2075-3959"}, {"no": "400208", "name": "西村 暁紀", "addr": "札幌市白石区平和通7丁目北14-12", "tel": "090-9088-3894"}, {"no": "400208", "name": "西村 暁紀", "addr": "札幌市白石区川下3条4丁目7-20-202", "tel": "090-9088-3894"}, {"no": "400209", "name": "谷口 正明", "addr": "名寄市西8条北1丁目24", "tel": "090-9750-3795"}, {"no": "400210", "name": "久野 重晴", "addr": "旭川市東光17条9丁目1-50", "tel": ""}, {"no": "400211", "name": "吉田 茂樹", "addr": "旭川市9条通22丁目1-10", "tel": "090-9514-3683"}, {"no": "400212", "name": "宮腰 唯導", "addr": "上川郡東川町南町4丁目6-22", "tel": "090-7519-7841"}, {"no": "400213", "name": "谷 昌春", "addr": "空知郡上富良野町大町1丁目6-18", "tel": ""}, {"no": "400214", "name": "伊藤 輝夫", "addr": "苫小牧市ときわ町1丁目11-23", "tel": "090-5985-6547"}, {"no": "400215", "name": "後藤 正人", "addr": "上川郡東川町南町4丁目6-21", "tel": "090-2052-8043"}, {"no": "400216", "name": "宮城 正宏", "addr": "旭川市豊岡8条3丁目1-5", "tel": ""}, {"no": "400217", "name": "柴田 一彦", "addr": "旭川市永山6条11丁目1-35", "tel": "090-1389-4519"}, {"no": "400218", "name": "池田 旬邦", "addr": "上川郡美瑛町北町1丁目12-26", "tel": ""}, {"no": "400219", "name": "田中 孝文", "addr": "恵庭市黄金中央3丁目5-11", "tel": "090-6213-1692"}, {"no": "400220", "name": "伊藤 真理子", "addr": "旭川市忠和5条4丁目5-21", "tel": ""}, {"no": "400221", "name": "佐藤 昌哉", "addr": "旭川市末広7条1丁目４-20", "tel": "090-3110-4801"}, {"no": "400222", "name": "小林 浩志", "addr": "空知郡奈井江町字チャシュナイ1037-280", "tel": ""}, {"no": "400223", "name": "昔農 清岳", "addr": "札幌市手稲区前田8条9丁目6-3", "tel": "090-6214-8600"}, {"no": "400224", "name": "白戸 直", "addr": "旭川市錦町22丁目2162-162", "tel": ""}, {"no": "400225", "name": "藤田 文明", "addr": "旭川市東光17条9丁目1-1", "tel": "090-6267-7296"}, {"no": "400226", "name": "山崎 泰宏", "addr": "旭川市春光2条8丁目7-8", "tel": ""}, {"no": "400227", "name": "壽浅 敦司", "addr": "富良野市新富町1-76", "tel": "080-1874-5068"}, {"no": "400228", "name": "加藤 勇", "addr": "札幌市東区東苗穂7条3丁目1-35", "tel": "090-7656-4623"}, {"no": "400229", "name": "木立 研治", "addr": "上川郡鷹栖町北野東4条3丁目1-1", "tel": "090-2051-7863"}, {"no": "400231", "name": "大津 伸介", "addr": "富良野市北の峰町2-27", "tel": ""}, {"no": "400232", "name": "伊藤 三弘", "addr": "旭川市東光18条9丁目1-2", "tel": "080-6062-4060"}, {"no": "400233", "name": "八田 典彦", "addr": "旭川市神居9条8丁目1-7", "tel": "090-2818-8538"}, {"no": "400234", "name": "堀田 幸宏", "addr": "旭川市神居4条20丁目67-57", "tel": "090-8638-0350"}, {"no": "400235", "name": "林 茂樹", "addr": "旭川市永山4条21丁目3-20", "tel": "090-6874-1436"}, {"no": "400236", "name": "駒木 正生", "addr": "旭川市東光12条4丁目4-11", "tel": ""}, {"no": "400237", "name": "白木 龍一", "addr": "千歳市上長都1024-5", "tel": "090-1524-2197"}, {"no": "400238", "name": "開 研作", "addr": "旭川市東光14条3丁目3-20", "tel": "090-2059-5239"}, {"no": "400239", "name": "西原 智之", "addr": "旭川市永山9条14丁目3-11", "tel": "090-1643-7236"}, {"no": "400241", "name": "市原 誠", "addr": "砂川市西1条北11丁目2-16", "tel": "090-6690-8863"}, {"no": "400243", "name": "堂向 達也", "addr": "旭川市東光18条9丁目1-37", "tel": "090-4872-8959"}, {"no": "400244", "name": "星 利正", "addr": "旭川市末広東2条8丁目3-16", "tel": ""}, {"no": "400245", "name": "久保田 悠介（林 由香）", "addr": "旭川市東光18条9丁目1-36", "tel": "090-7644-4306"}, {"no": "400246", "name": "波多野 正樹", "addr": "旭川市東光18条9丁目1-34", "tel": "090-1389-1163"}, {"no": "400247", "name": "高橋 将章", "addr": "旭川市東光18条9丁目1-1", "tel": "090-5071-8883"}, {"no": "400248", "name": "吉田 篤司", "addr": "旭川市東光7条2丁目3-3", "tel": "090-7050-5051"}, {"no": "400250", "name": "村上 さよ", "addr": "名寄市風連町仲町56-4", "tel": "080-5581-3763"}, {"no": "400251", "name": "戸屋 智博", "addr": "旭川市旭町1条13丁目2146-68", "tel": "090-3399-1804"}, {"no": "400252", "name": "軒 和憲", "addr": "深川市7条8-21", "tel": "090-8594-5472"}, {"no": "400253", "name": "山本 寿", "addr": "旭川市東光18条9丁目2-27", "tel": ""}, {"no": "400254", "name": "鈴木 義一", "addr": "旭川市豊岡7条11丁目1-26", "tel": "090-7512-1523"}, {"no": "400255", "name": "高橋 英司", "addr": "天塩郡豊富町字上サロベツ1083-33", "tel": "090-7643-2120"}, {"no": "400256", "name": "山口 太一", "addr": "札幌市中央区宮の森4条12丁目13-7", "tel": "090-1646-3034"}, {"no": "400257", "name": "池田 直樹", "addr": "札幌市白石区栄通18丁目8-15", "tel": "090-8707-2343"}, {"no": "400258", "name": "栗田 佑也", "addr": "名寄市字曙1-15", "tel": "090-7656-4901"}, {"no": "400259", "name": "長谷川 孝", "addr": "富良野市新富町3-39", "tel": "090-8908-7421"}, {"no": "400260", "name": "斉藤 敦志", "addr": "上川郡鷹栖町北野東5条2丁目7-5", "tel": ""}, {"no": "400261", "name": "髙田 学", "addr": "札幌市東区東雁来11条2丁目5-5", "tel": "090-9519-6776"}, {"no": "400262", "name": "岡 博和", "addr": "枝幸郡枝幸町栄町910-24", "tel": "090-5077-7198"}, {"no": "400263", "name": "斉藤 祐次", "addr": "名寄市西8条南6丁目3", "tel": "090-4879-5422"}, {"no": "400264", "name": "石野 真琴", "addr": "富良野市学田三区", "tel": "090-3113-4562"}, {"no": "400265", "name": "小﨑 裕史", "addr": "旭川市東光18条9丁目2-13", "tel": "080-5592-4844"}, {"no": "400266", "name": "瀬波 俊直", "addr": "旭川市東光18条9丁目2-26", "tel": "090-8372-2040"}, {"no": "400267", "name": "谷 正美", "addr": "上川郡美瑛町字美沢向大正山", "tel": "090-2816-2179"}, {"no": "400268", "name": "辻 義二", "addr": "旭川市西神楽南1条3丁目248-47", "tel": "080-5593-0681"}, {"no": "400269", "name": "木原 裕治", "addr": "旭川市東光19条9丁目2-11", "tel": "090-6263-7769"}, {"no": "400270", "name": "高杉 雅史", "addr": "札幌市手稲区前田6条16丁目8-15", "tel": "090-5588-0624"}, {"no": "400271", "name": "福地 直也", "addr": "旭川市東光18条9丁目2-24", "tel": "090-9519-7200"}, {"no": "400272", "name": "幾島 康之", "addr": "旭川市北門町13丁目2145-90", "tel": ""}, {"no": "400273", "name": "片渕 悦誉", "addr": "旭川市豊岡7条11丁目1-27", "tel": "080-5593-7820"}, {"no": "400274", "name": "齋藤 智", "addr": "旭川市東光18条9丁目2-16", "tel": "080-5593-7820"}, {"no": "400275", "name": "小甲 久", "addr": "旭川市東光18条9丁目2-23", "tel": "090-9521-5595"}, {"no": "400276", "name": "本間 毅", "addr": "上川郡鷹栖町北野東4条3丁目4-13", "tel": "090-8895-3102"}, {"no": "400277", "name": "田村 哲也", "addr": "旭川市神楽岡8条4丁目3-11", "tel": "090-6219-8189"}, {"no": "400278", "name": "三好 嘉", "addr": "旭川市神楽1条8丁目1-5", "tel": "090-9085-6647"}, {"no": "400279", "name": "沼館 純雄", "addr": "旭川市新富3条2丁目4-16", "tel": ""}, {"no": "400280", "name": "額村 和哉", "addr": "旭川市末広7条3丁目1-5", "tel": ""}, {"no": "400281", "name": "内布 剛明", "addr": "上川郡東川町南町3丁目7-10", "tel": "090-9755-8181"}, {"no": "400282", "name": "今野 正樹", "addr": "旭川市東光18条9丁目1-7", "tel": "090-2818-0211"}, {"no": "400283", "name": "吉田 裕樹", "addr": "名寄市西12条南1丁目17-36", "tel": "090-8632-0738"}, {"no": "400284", "name": "䕃山 周士", "addr": "旭川市東光9条1丁目5-11", "tel": "0166-33-8284"}, {"no": "400285", "name": "森田 茂樹", "addr": "旭川市東光18条9丁目1-3", "tel": "090-9087-3438"}, {"no": "400286", "name": "小林 依志夫", "addr": "夕張郡長沼町旭町北1丁目3-16", "tel": "090-1644-1376"}, {"no": "400287", "name": "小玉 義弘", "addr": "旭川市東光18条9丁目2-28", "tel": "090-2692-5981"}, {"no": "400288", "name": "大沼 洋樹", "addr": "旭川市東旭川南2条3丁目5-11", "tel": "090-8429-4319"}, {"no": "400289", "name": "三上 伸二", "addr": "士別市東４条北１丁目11-1", "tel": "090-2054-9335"}, {"no": "400290", "name": "堀内 憲夫", "addr": "旭川市東光19条7丁目2-9", "tel": "090-3112-2537"}, {"no": "400291", "name": "萩山 良淳", "addr": "旭川市永山1条21丁目3-31", "tel": "090-6212-8947"}, {"no": "400292", "name": "石﨑 恵", "addr": "旭川市末広6条12丁目5-2", "tel": "090-6216-6944"}, {"no": "400293", "name": "遠藤 政文", "addr": "名寄市風連町字豊里974番地", "tel": "090-3396-3631"}, {"no": "400294", "name": "田邊 隆", "addr": "旭川市東光19条8丁目2-17", "tel": "090-8273-6724"}, {"no": "400295", "name": "合田 秀人", "addr": "名寄市西8条北3丁目18-2", "tel": "090-5070-4524"}, {"no": "400296", "name": "領家 光章", "addr": "旭川市春光2条8丁目", "tel": "090-7512-1916"}, {"no": "400297", "name": "赤石 裕司", "addr": "旭川市東光18条9丁目2-12", "tel": "090-9752-7661"}, {"no": "400298", "name": "髙田 博之", "addr": "天塩郡遠別町字本町5丁目7-1", "tel": "090-7513-8528"}, {"no": "400299", "name": "根岸 健二", "addr": "旭川市緑町20丁目2164-34", "tel": ":090-2874-6917"}, {"no": "400300", "name": "田中 宏哉", "addr": "旭川市東光19条8丁目3-34", "tel": "090-9516－3511"}, {"no": "400301", "name": "猪野 匡", "addr": "旭川市東光18条8丁目3-40", "tel": ""}, {"no": "400302", "name": "福井 真司", "addr": "旭川市永山9条13丁目4-31", "tel": "090-1306-0132"}, {"no": "400303", "name": "見春 孝平", "addr": "旭川市忠和3条4丁目1-18", "tel": "090-7055-4833"}, {"no": "400303", "name": "見春 孝平", "addr": "旭川市忠和3条5丁目9-5", "tel": ""}, {"no": "400304", "name": "山崎 貴志", "addr": "旭川市永山9条15丁目5-5", "tel": "090-8278-6038"}, {"no": "400305", "name": "荒川 晃", "addr": "旭川市東光18条9丁目1-4", "tel": "090-9750-8281"}, {"no": "400306", "name": "山中 英嗣", "addr": "上川郡美瑛町中町1丁目4-16", "tel": "090-9302-1171"}, {"no": "400307", "name": "岩崎 亜紀香", "addr": "旭川市豊岡11条1丁目3-1", "tel": "090-3778-8571"}, {"no": "400308", "name": "紺野 智輝", "addr": "旭川市春光5条8丁目14-11", "tel": "090-9758-7675"}, {"no": "400309", "name": "桐山 城太郎", "addr": "札幌市中央区宮の森4条4丁目3-26", "tel": "090-9750-2857"}, {"no": "400310", "name": "但木 秀行", "addr": "旭川市東光18条9丁目1-6", "tel": "080-5582-1257"}, {"no": "400311", "name": "久保田 貴洋", "addr": "上川郡比布町新町5丁目7-36", "tel": ""}, {"no": "400312", "name": "朝岡 政章", "addr": "旭川市永山北1条11丁目46-35", "tel": ""}, {"no": "400313", "name": "前田 整", "addr": "旭川市永山6条23丁目1-14", "tel": "090-2073-9133"}, {"no": "400314", "name": "柴田 照久", "addr": "旭川市9条通11丁目　日建ビル401", "tel": ""}, {"no": "400315", "name": "千葉 克也", "addr": "旭川市東旭川北1条6丁目5-5", "tel": ""}, {"no": "400316", "name": "稲木 謙嗣", "addr": "旭川市豊岡2条3丁目3-10", "tel": "090-2306-8411"}, {"no": "400317", "name": "岸田 直美", "addr": "旭川市東光18条9丁目2‐14", "tel": ""}, {"no": "400318", "name": "伊山 学", "addr": "空知郡上富良野町南町1丁目1-12", "tel": "090-3119-0134"}, {"no": "400319", "name": "齊藤 佑介", "addr": "旭川市東光19条8丁目2-23", "tel": "090-6444-2559"}, {"no": "400320", "name": "郷 和幸", "addr": "上川郡和寒町字三笠95", "tel": "090-7053-3363"}, {"no": "400321", "name": "奥山 正明", "addr": "旭川市永山5条17丁目2-13", "tel": "090-6995-3035"}, {"no": "400322", "name": "中山 啓二", "addr": "旭川市春光台3条6丁目4-1", "tel": ""}, {"no": "400323", "name": "田中 彰", "addr": "旭川市東光19条9丁目2-27", "tel": "090-6265-7876"}, {"no": "400324", "name": "長尾 卓宜", "addr": "旭川市末広3条9丁目2-8-2", "tel": "080-1889-5513"}, {"no": "400325", "name": "田中 幸作", "addr": "旭川市末広3条9丁目2-20", "tel": "090-7643-0583"}, {"no": "400326", "name": "松田 知樹", "addr": "旭川市東光18条9丁目1-32", "tel": ""}, {"no": "400327", "name": "大須賀 等", "addr": "旭川市永山4条12丁目2-1", "tel": "090-3899-1252"}, {"no": "400328", "name": "山口 洋史", "addr": "旭川市東光18条9丁目2-11", "tel": "080-1876-0612"}, {"no": "400329", "name": "鈴木 貴憲", "addr": "名寄市大通南11丁目2-31", "tel": "090-8370-8419"}, {"no": "400330", "name": "齋藤 卓己", "addr": "旭川市東光19条9丁目2-28", "tel": ""}, {"no": "400331", "name": "広田 聡", "addr": "名寄市緑丘39-53", "tel": "090-9518-6429"}, {"no": "400332", "name": "伊藤 貴博", "addr": "旭川市東光19条8丁目3-36", "tel": "090-3112-6976"}, {"no": "400333", "name": "三宅 高弘", "addr": "旭川市旭岡1丁目22-3", "tel": "090-9752-5682"}, {"no": "400334", "name": "押切 慎一", "addr": "旭川市東光18条9丁目1-33", "tel": ""}, {"no": "400335", "name": "秦 浩信", "addr": "札幌市東区北24条東5丁目2-3", "tel": "080-5580-6229"}, {"no": "400336", "name": "石原 良祐", "addr": "上川郡東川町東町4丁目6-12", "tel": ""}, {"no": "400337", "name": "伊藤 勝也", "addr": "旭川市東光19条9丁目2-12", "tel": "090-6210-3355"}, {"no": "400338", "name": "サクラ咲くクリニック", "addr": "旭川市宮前通東4155-1", "tel": ""}, {"no": "400339", "name": "佐藤 和弘", "addr": "旭川市春光2条8丁目7-6", "tel": "090-8906-3374"}, {"no": "400340", "name": "佐藤 マリア", "addr": "枝幸郡浜頓別町旭ヶ丘2丁目45番地", "tel": "090-9527-6506"}, {"no": "400341", "name": "中村 高之", "addr": "旭川市東光19条8丁目2-16", "tel": "090-6991-4011"}, {"no": "400342", "name": "石前 誠", "addr": "旭川市春光3条7丁目4-33", "tel": "090-6213-0079"}, {"no": "400343", "name": "稲場 貴紀", "addr": "旭川市南8条通24丁目1976-377", "tel": ""}, {"no": "400344", "name": "白石 誠", "addr": "旭川市末広2条7丁目3-6-2", "tel": ""}, {"no": "400345", "name": "川口 實", "addr": "旭川市東光2条1丁目3-12", "tel": ""}, {"no": "400346", "name": "前野 秀樹", "addr": "旭川市南3条通21丁目3-149", "tel": "090-8903-9870"}, {"no": "400347", "name": "岡本 國雄", "addr": "士別市東8条7丁目454-128", "tel": ""}, {"no": "400348", "name": "佐々木 理", "addr": "名寄市東2条南3丁目20-2", "tel": ""}, {"no": "400349", "name": "吉本 将章", "addr": "旭川市東光20条9丁目1-33", "tel": "090-9082-0618"}, {"no": "400350", "name": "柴山 弘", "addr": "士別市北町96番地112", "tel": "090-3392-6105"}, {"no": "400351", "name": "黒川 英博", "addr": "札幌市北区新琴似10条9丁目8-19", "tel": ""}, {"no": "400352", "name": "川嶋 智", "addr": "雨竜郡沼田町本通4丁目4-25", "tel": "090-9529-8470"}, {"no": "400353", "name": "森川 純次", "addr": "旭川市末広1条4丁目4-6", "tel": "090-3117-8560"}, {"no": "400354", "name": "小玉 勉", "addr": "旭川市永山9条16丁目1-16", "tel": "080-3232-6512"}, {"no": "400355", "name": "福田 勝志", "addr": "深川市4条13-5", "tel": "090-9515-8918"}, {"no": "400356", "name": "鈴木 晶勝", "addr": "旭川市東光17条9丁目1-2", "tel": "080-1971-8046"}, {"no": "400357", "name": "高舘 晶保", "addr": "旭川市春光2条8丁目7-13", "tel": ""}, {"no": "400358", "name": "多田 真弓", "addr": "深川市北光町1丁目15-36", "tel": ""}, {"no": "400359", "name": "鈴木 あゆ", "addr": "上川郡剣淵町西町25-3", "tel": "090-6265-2453"}, {"no": "400360", "name": "工藤 慎一", "addr": "旭川市春光2条8丁目7-15", "tel": "090-7059-4730"}, {"no": "400361", "name": "更科 雄高", "addr": "旭川市東光18条9丁目2-17", "tel": "090-2814-6128"}, {"no": "400362", "name": "森 信一", "addr": "旭川市宮下通21丁目1974-35", "tel": "090-8277-1246"}, {"no": "400363", "name": "橋本 智也", "addr": "旭川市永山9条16丁目1-19", "tel": "090-2879-5771"}, {"no": "400364", "name": "藤田 貴之", "addr": "旭川市永山9条16丁目1-20", "tel": "090-9759-2718"}, {"no": "400365", "name": "葛西 雅司", "addr": "旭川市春光2条8丁目7-18", "tel": "090-9757-1227"}, {"no": "400366", "name": "谷崎 博三", "addr": "空知郡中富良野町字中富良野東8線北14号", "tel": ""}, {"no": "400367", "name": "中富 崇", "addr": "上川郡愛別町字南町29番地13", "tel": "090-5071-4090"}, {"no": "400368", "name": "野村 雅宏", "addr": "旭川市3条西2丁目2-2", "tel": "090-9087-4219"}, {"no": "400369", "name": "玉木 岳", "addr": "旭川市西御料4条2丁目2-19", "tel": ""}, {"no": "400370", "name": "川田 昌宏", "addr": "雨竜郡北竜町字碧水47-11", "tel": "090-2698-4988"}, {"no": "400371", "name": "鈴木 慶", "addr": "旭川市永山7条18丁目1-8", "tel": ""}, {"no": "400372", "name": "田澤 幸紀", "addr": "旭川市春光2条8丁目7-16", "tel": "0166-73-7033"}, {"no": "400373", "name": "我妻 潤一", "addr": "旭川市東光18条9丁目1-38", "tel": "売却済み"}, {"no": "400374", "name": "奥山 笑美", "addr": "名寄市西16条南9丁目24-1", "tel": "090-3397-1242"}, {"no": "400375", "name": "神田 学", "addr": "旭川市春光台4条2丁目8-23", "tel": "080-1886-6876"}, {"no": "400376", "name": "長井 妙子", "addr": "旭川市永山5条6丁目1-13", "tel": "090-6219-0217"}, {"no": "400377", "name": "岩澤 寿昭", "addr": "旭川市永山3条18丁目1-5-2", "tel": "090-7643-3785"}, {"no": "400378", "name": "菅野 俊彦", "addr": "旭川市永山9条16丁目1-17", "tel": "090-9305-2786"}, {"no": "400379", "name": "富田 卓也", "addr": "旭川市東光19条8丁目2-20", "tel": "090-1522-2401"}, {"no": "400380", "name": "加藤 信二", "addr": "名寄市西2条南4丁目10-2", "tel": ""}, {"no": "400381", "name": "横関 恵太", "addr": "旭川市永山9条2丁目4-1", "tel": "090-1386-3410"}, {"no": "400382", "name": "千葉 悟", "addr": "旭川市永山2条1丁目2-4", "tel": "090-6992-7140"}, {"no": "400384", "name": "浅井 宏文", "addr": "上川郡剣淵町西町25-11", "tel": "090-7650-2228"}, {"no": "400385", "name": "佐竹 隆伸", "addr": "旭川市春光6条2丁目1-18", "tel": "090-6265-6641"}, {"no": "400386", "name": "遊佐 智泉", "addr": "旭川市永山9条16丁目1-23", "tel": "090-2050-9686"}, {"no": "400387", "name": "山口 桂志", "addr": "旭川市神居6条9丁目2‐10", "tel": "090-5986-3858"}, {"no": "400388", "name": "神成 貴也", "addr": "旭川市東光19条9丁目1-27", "tel": "090-2071-9858"}, {"no": "400389", "name": "伊賀 俊充", "addr": "旭川市東光10条5丁目2-1", "tel": "090-2872-5254"}, {"no": "400390", "name": "長井 高雄", "addr": "旭川市永山5条6丁目1-14", "tel": "090-3773-1395"}, {"no": "400391", "name": "田澤 守", "addr": "旭川市忠和2条5丁目9-9", "tel": ""}, {"no": "400392", "name": "吉田 篤司", "addr": "旭川市豊岡6条10丁目5-16", "tel": "090-9089-9220"}, {"no": "400393", "name": "村田 知優", "addr": "旭川市東光21条9丁目1-13", "tel": "090-9521-9884"}, {"no": "400394", "name": "田中 亘", "addr": "旭川市永山10条11丁目7-12", "tel": "090-3119-6805"}, {"no": "400395", "name": "橋田 興", "addr": "旭川市忠和5条4丁目4-7", "tel": "090-8895-7200"}, {"no": "400396", "name": "河部 浩之", "addr": "旭川市永山10条15丁目5-7", "tel": "090-5070-5879"}, {"no": "400397", "name": "河崎 猛", "addr": "上川郡東神楽町ひじり野北2条10丁目3-1", "tel": "090-9759-9383"}, {"no": "400398", "name": "渡辺 勇樹", "addr": "旭川市末広1条2丁目6-25", "tel": "080-1881-8574"}, {"no": "400399", "name": "近藤 渉", "addr": "旭川市豊岡11条7丁目4-2", "tel": ""}, {"no": "400400", "name": "松田 昭彦", "addr": "上川郡東川町新栄南1丁目5番1号", "tel": "090-2072-6467"}, {"no": "400401", "name": "渡辺 茂雄", "addr": "旭川市東光18条9丁目2-20", "tel": "090-6990-2486"}, {"no": "400402", "name": "渡邊 誠二", "addr": "名寄市西3条南10丁目36-2", "tel": ""}, {"no": "400403", "name": "大越 雅昭", "addr": "沙流郡日高町富川東4丁目2-13", "tel": "090-5072-2804"}, {"no": "400403", "name": "大澤 史明", "addr": "旭川市春光2条8丁目7-5", "tel": "090-1641-7923"}, {"no": "400404", "name": "吉田 謙治", "addr": "富良野市新光町1-35", "tel": "080-6097-0268"}, {"no": "400405", "name": "清水 紀之", "addr": "名寄市字徳田65-179", "tel": "090-1525-0010"}, {"no": "400406", "name": "曽川 友和", "addr": "旭川市春光台5条3丁目1-11", "tel": "090-7657-0029"}, {"no": "400407", "name": "酒師 幸裕", "addr": "旭川市春光台1条5丁目3-21", "tel": "090-2056-6358"}, {"no": "400408", "name": "佐藤 慶士良", "addr": "旭川市春光台5条2丁目10-6", "tel": "090-8904-9701"}, {"no": "400409", "name": "野川 純平", "addr": "士別市西3条18丁目463-199", "tel": "090-5221-0907"}, {"no": "400410", "name": "中山 禎志", "addr": "旭川市南7条通26丁目567-35", "tel": "080-3267-7494"}, {"no": "400411", "name": "林 政輝", "addr": "旭川市忠和5条5丁目7-20", "tel": "090-8708-0321"}, {"no": "400412", "name": "堂 征仁", "addr": "旭川市神楽岡4条6丁目2-18", "tel": "090-5983-3683"}, {"no": "400413", "name": "福川 拓悦", "addr": "上川郡和寒町字三笠5番地", "tel": "090-2699-2782"}, {"no": "400414", "name": "川村 卓", "addr": "旭川市錦町13丁目3085-2", "tel": "090-9753-6933"}, {"no": "400415", "name": "村上 和也", "addr": "苫前郡苫前町字古丹別187-22", "tel": "090-2818-9759"}, {"no": "400416", "name": "大野 彰史", "addr": "上川郡東神楽町ひじり野北2条10丁目5-5", "tel": "090-8371-6446"}, {"no": "400417", "name": "佐藤 久仁子", "addr": "旭川市春光2条9丁目7-16", "tel": ""}, {"no": "400418", "name": "髙野池 順子", "addr": "苫小牧市しらかば町2丁目4-11", "tel": ""}, {"no": "400419", "name": "髙野池 修", "addr": "苫小牧市拓勇東町3丁目7-6", "tel": "090-8278-3228"}, {"no": "400420", "name": "高橋 智之", "addr": "旭川市春光2条8丁目7-4", "tel": "090-1521-6911"}, {"no": "400421", "name": "久佐賀 亮", "addr": "旭川市忠和5条5丁目5-16-2", "tel": "090-2058-8326"}, {"no": "400422", "name": "大庭 政軌", "addr": "旭川市東旭川南2条3丁目4-4", "tel": "090-6994-8165"}, {"no": "400423", "name": "熊谷 義和", "addr": "旭川市東旭川南2条3丁目1-22", "tel": "090-9511-0926"}, {"no": "400424", "name": "木村 純一", "addr": "旭川市神楽岡11条9丁目5-16", "tel": "090-9438-6795"}, {"no": "400425", "name": "木村 圭吾", "addr": "旭川市神楽岡11条2丁目1-14", "tel": "090-8903-2446"}, {"no": "400426", "name": "横山 潤", "addr": "札幌市手稲区新発寒7条10丁目4-11", "tel": "090-5957-3926"}, {"no": "400427", "name": "青木 昌志", "addr": "旭川市東6条6丁目1-1", "tel": "080-6075-3155"}, {"no": "400428", "name": "伊知地 丹意奈", "addr": "上川郡東神楽町ひじり野北2条10丁目5-3", "tel": "080-3291-9011"}, {"no": "400429", "name": "若崎 徹", "addr": "砂川市晴見2条北9丁目2-2", "tel": "080-6097-8690"}, {"no": "400430", "name": "横山 教", "addr": "上川郡当麻町5条東4丁目5‐11", "tel": "090-6269-5076"}, {"no": "400431", "name": "田中 宣行", "addr": "旭川市東光13条7丁目3-16", "tel": "090-6211-3575"}, {"no": "400432", "name": "吉村 里加子", "addr": "旭川市神楽岡8条1丁目2-3", "tel": "090-8429-4492"}, {"no": "400433", "name": "坂田 功", "addr": "上川郡東神楽町6号南3番地", "tel": ""}, {"no": "400434", "name": "松本 剛志", "addr": "旭川市東光20条9丁目2-11", "tel": "090-9529-3265"}, {"no": "400435", "name": "株式会社 ＳＴＥＰ", "addr": "旭川市東6条5丁目1-16", "tel": "080-5595-1736"}, {"no": "400436", "name": "入交 俊之", "addr": "富良野市北の峰町28-39", "tel": "090-7648-6757"}, {"no": "400437", "name": "戸島 隆喜", "addr": "上川郡鷹栖町南1条2丁目5-6", "tel": "090-2072-6377"}, {"no": "400438", "name": "宗形 恭太郎", "addr": "旭川市春光6条7丁目14-6", "tel": ""}, {"no": "400439", "name": "山本 公彦", "addr": "旭川市春光台5条1丁目18-7", "tel": "090-9087-9663"}, {"no": "400440", "name": "菊地 岳飛", "addr": "枝幸郡浜頓別町北1条7丁目1番地", "tel": "090-7003-4983"}, {"no": "400441", "name": "小林 正幸", "addr": "旭川市神楽2条9丁目2-20-2", "tel": "090-4736-5044"}, {"no": "400442", "name": "山田 心悟", "addr": "旭川市永山9条16丁目1-22", "tel": "090-8706-1514"}, {"no": "400443", "name": "島田 晃宏", "addr": "旭川市末広2条11丁目6-1", "tel": "090-5988-7912"}, {"no": "400444", "name": "関脇 信", "addr": "名寄市西15条南5丁目3-4", "tel": "090-2873-9700"}, {"no": "400445", "name": "二又 裕介", "addr": "上川郡東神楽町ひじり野北2条9丁目2-18", "tel": "090-1308-5957"}, {"no": "400446", "name": "齋藤 貞政", "addr": "旭川市西御料3条3丁目1-5", "tel": "080-6094-1310"}, {"no": "400447", "name": "中本 厚", "addr": "上川郡東神楽町ひじり野北2条9丁目2-4", "tel": ""}, {"no": "400448", "name": "斉藤 譲二", "addr": "雨竜郡秩父別町1505-16", "tel": "090-7651-3885"}, {"no": "400449", "name": "斉藤 憲男", "addr": "稚内市若葉台2丁目9-14", "tel": "090-5079-3225"}, {"no": "400450", "name": "佐々木 陽平", "addr": "旭川市西御料4条3丁目2-23", "tel": "090-6212-4685"}, {"no": "400451", "name": "北林 新", "addr": "旭川市東光17条9丁目1-48", "tel": "090-9527-2868"}, {"no": "400453", "name": "吉澤 康伸", "addr": "上川郡東神楽町ひじり野北2条9丁目2-20", "tel": ""}, {"no": "400454", "name": "佐々木 徹", "addr": "旭川市西御料2条3丁目4-26", "tel": ":090-2814-2736"}, {"no": "400455", "name": "鈴木 英昭", "addr": "美唄市茶志内町3区南", "tel": "090-1526-5367"}, {"no": "400456", "name": "上林 敏幸", "addr": "旭川市旭岡2丁目4-48", "tel": ""}, {"no": "400457", "name": "和田 和儀", "addr": "深川市新光町1丁目1-31", "tel": "090-5951-8678"}, {"no": "400458", "name": "吉田 昌史", "addr": "旭川市神楽2条8丁目1-38", "tel": "090-1309-4046"}, {"no": "400459", "name": "五十嵐 敦", "addr": "旭川市東光8条2丁目2-3", "tel": "080-1879-8013"}, {"no": "400460", "name": "伊佐治 信一", "addr": "旭川市神居1条11丁目3-8", "tel": "090-3776-6528"}, {"no": "400461", "name": "穴口 透", "addr": "旭川市旭岡2丁目1-9", "tel": "080-1866-5817"}, {"no": "400462", "name": "堀井 拓哉", "addr": "増毛郡増毛町暑寒沢184-3", "tel": "090-8371-8208"}, {"no": "400463", "name": "奈良 和幸", "addr": "旭川市3条通3丁目699-2", "tel": "090-6218-7428"}, {"no": "400464", "name": "近江谷 正博", "addr": "旭川市東光15条8丁目1-23", "tel": "090-1388-5719"}, {"no": "400465", "name": "本田 直樹", "addr": "旭川市曙2条8丁目2-13", "tel": "090-7054-4033"}, {"no": "400466", "name": "工藤 諭", "addr": "旭川市東光14条8丁目１-２", "tel": "090-9634-7538"}, {"no": "400467", "name": "古谷 由美子", "addr": "岩見沢市幌向北1条4丁目561-14", "tel": "0126-35-4992"}, {"no": "400468", "name": "阿部 和正", "addr": "旭川市南1条通22丁目1974-87", "tel": ""}, {"no": "400469", "name": "十河 俊輔", "addr": "上川郡東神楽町ひじり野北2条9丁目1-5", "tel": "090-5959-5109"}, {"no": "400470", "name": "佐藤 桂司", "addr": "札幌市北区新琴似11条4丁目5-15", "tel": "090-5187-3251"}, {"no": "400471", "name": "山崎 大輔", "addr": "上川郡東神楽町ひじり野北1条10丁目2-5", "tel": "090-3773-5532"}, {"no": "400472", "name": "鈴木 直人", "addr": "旭川市1条通20丁目665-1", "tel": "090-6698-5761"}, {"no": "400473", "name": "髙木 潤", "addr": "江別市野幌若葉町31-6", "tel": "070-6607-5645"}, {"no": "400474", "name": "髙橋 将人", "addr": "士別市西2条16丁目3141-573", "tel": "090-2056-7304"}, {"no": "400475", "name": "利波 エイ", "addr": "函館市入舟町4-14", "tel": ""}, {"no": "400476", "name": "玉田 健", "addr": "中川郡音威子府村字咲来723-3", "tel": "090-9435-0045"}, {"no": "400477", "name": "山本 修", "addr": "旭川市永山9条15丁目2-16", "tel": "090-9528-8580"}, {"no": "400478", "name": "佐々木 喜規", "addr": "旭川市永山6条11丁目2-8", "tel": "090-3114-9856"}, {"no": "400479", "name": "辻野 貴博", "addr": "旭川市旭町2条14丁目297-72", "tel": "090-4874-9454"}, {"no": "400480", "name": "長井 雄一", "addr": "旭川市春光台4条3丁目7-1", "tel": "090-3398-0001"}, {"no": "400481", "name": "竹内 一浩", "addr": "旭川市東光11条1丁目3-28", "tel": "080-1010-0877"}, {"no": "400482", "name": "加藤 大介", "addr": "旭川市永山2条22丁目3-28", "tel": "090-7653-6186"}, {"no": "400483", "name": "本夛 順一", "addr": "千歳市みどり台北４丁目9-21", "tel": "090-7640-4346"}, {"no": "400484", "name": "前澤 康行", "addr": "士別市東1条北9丁目43", "tel": "090-1524-4564"}, {"no": "400485", "name": "伊林 雅広", "addr": "深川市新光町1丁目1-33", "tel": "080-1882-1080"}, {"no": "400486", "name": "藤原 雅江", "addr": "富良野市東町12-10", "tel": "090-7512-9045"}, {"no": "400487", "name": "只野 葵", "addr": "滝川市扇町3丁目2-7", "tel": "080-4504-3412"}, {"no": "400488", "name": "髙橋 克周", "addr": "旭川市末広5条2丁目2-15", "tel": ":090-7656-1637"}, {"no": "400489", "name": "山崎 智広", "addr": "深川市稲穂町2丁目8-8", "tel": "090-4879-2913"}, {"no": "400490", "name": "柴田 真佐人", "addr": "空知郡上富良野町泉町3丁目165-14", "tel": "090-3770-3524"}, {"no": "400491", "name": "小関 拓哉", "addr": "上川郡東川町南町4丁目9-7", "tel": "090-9528-4207"}, {"no": "400492", "name": "篠田 一", "addr": "上川郡東神楽町ひじり野北2条10丁目1-4", "tel": "080-6073-2509"}, {"no": "400493", "name": "伊藤 泰之", "addr": "旭川市忠和5条3丁目1-7", "tel": "090-9436-8646"}, {"no": "400494", "name": "山田 努", "addr": "上川郡鷹栖町北野東5条3丁目6-3", "tel": "0166-87-5587"}, {"no": "400495", "name": "手塚 直樹", "addr": "旭川市神楽岡7条3丁目1-24-2", "tel": "090-2077-8603"}, {"no": "400496", "name": "吉田 明彦", "addr": "枝幸郡枝幸町乙忠部1458番地23", "tel": ""}, {"no": "400497", "name": "鈴木 健太郎", "addr": "旭川市東鷹栖４条２丁目636-191", "tel": "090-8632-7779"}, {"no": "400498", "name": "有澤 利彰", "addr": "旭川市末広4条1丁目1-28", "tel": "090-3392-3116"}, {"no": "400499", "name": "鈴木 大輔", "addr": "旭川市東旭川町上兵村130-9", "tel": "090-2695-8137"}, {"no": "400500", "name": "宮川 生史", "addr": "名寄市西8条北3丁目12", "tel": "090-4877-8472"}, {"no": "400501", "name": "吉澤 門土", "addr": "旭川市西御料2条3丁目3-15", "tel": "090-2052-9427"}, {"no": "400502", "name": "村中 剛志", "addr": "旭川市神居6条15丁目1-15", "tel": ""}, {"no": "400503", "name": "佐藤 大輝", "addr": "旭川市東光19条9丁目2-32", "tel": "090-9084-8307"}, {"no": "400504", "name": "堀 敦", "addr": "旭川市末広5条6丁目3-7", "tel": "090-9524-7883"}, {"no": "400505", "name": "山口 勝秀", "addr": "名寄市西7条南10丁目28-35", "tel": "090-1526-8405"}, {"no": "400506", "name": "柴田 和宏", "addr": "深川市稲穂町2丁目6-31", "tel": "090-8909-2413"}, {"no": "400507", "name": "黄倉 正泰", "addr": "雨竜郡北竜町字和57-32", "tel": "090-5225-0052"}, {"no": "400508", "name": "白川 幸保", "addr": "留萌市千鳥町2丁目82-1", "tel": "090-3117-8500"}, {"no": "400509", "name": "堀部 憲", "addr": "上川郡東神楽町ひじり野北1条9丁目4-19", "tel": "090-6991-7631"}, {"no": "400510", "name": "竹内 圭介", "addr": "旭川市川端町3条7丁目1-12-2", "tel": "080-1870-5327"}, {"no": "400510", "name": "竹内 義雄", "addr": "旭川市川端町3条7丁目1-12-2", "tel": "090-8896-7846"}, {"no": "400511", "name": "木村 隆", "addr": "旭川市春光４条８丁目４-２１", "tel": "090-6215-1093"}, {"no": "400512", "name": "中田 臣一", "addr": "小樽市銭函2丁目10-12", "tel": "090-8909-3990"}, {"no": "400513", "name": "加藤 佳洋", "addr": "旭川市春光6条7丁目7-12", "tel": "080-4041-8870"}, {"no": "400514", "name": "豊口 雄介", "addr": "上川郡東川町北町12丁目15-1", "tel": "090-2056-6198"}, {"no": "400515", "name": "菅野 貴博", "addr": "空知郡上富良野町南町3丁目3-3", "tel": "090-5071-7062"}, {"no": "400516", "name": "楠瀬 賢一", "addr": "旭川市東光20条7丁目2-1", "tel": ""}, {"no": "400517", "name": "川上 智弘", "addr": "旭川市秋月1条2丁目10-15", "tel": ""}, {"no": "400518", "name": "畑中 悠也", "addr": "滝川市中島町3丁目8-3", "tel": "090-9431-6246"}, {"no": "400519", "name": "尾谷 彰彦", "addr": "旭川市永山10条15丁目1-22", "tel": "090-1384-7892"}, {"no": "400520", "name": "山﨑 圭介", "addr": "旭川市永山10条15丁目1-11", "tel": "080-6080-1976"}, {"no": "400521", "name": "石川 景一", "addr": "旭川市東光１条１丁目2-17", "tel": "090-3893-1891"}, {"no": "400522", "name": "茶木 哲也", "addr": "滝川市東町3丁目4-11", "tel": "080-5585-5632"}, {"no": "400523", "name": "吉田 学", "addr": "上川郡東神楽町ひじり野北1条8丁目3番18号", "tel": "090-2818-9908"}, {"no": "400524", "name": "栃谷 透", "addr": "深川市稲穂町2丁目8-7", "tel": "080-1860-6390"}, {"no": "400525", "name": "金山 清人", "addr": "旭川市春光台5条3丁目9-22", "tel": "080-5582-6970"}, {"no": "400526", "name": "数馬 崇克", "addr": "雨竜郡北竜町字和29-18", "tel": "090-3891-4839"}, {"no": "400527", "name": "田丸 雅之", "addr": "旭川市南7条通22丁目2239-2", "tel": "090-2050-6779"}, {"no": "400528", "name": "永瀬 晃宏", "addr": "旭川市神居8条2丁目2-14", "tel": "090-8638-5867"}, {"no": "400529", "name": "渡辺 愛毅", "addr": "上川郡美瑛町幸町4丁目2-6", "tel": "090-2050-3346"}, {"no": "400530", "name": "中 弘孝", "addr": "旭川市豊岡14条7丁目5-23-2", "tel": "090-2405-2459"}, {"no": "400531", "name": "落合 純一", "addr": "北広島市若葉町4丁目7-1", "tel": "090-3119-2097"}, {"no": "400532", "name": "小野寺 康子", "addr": "旭川市神居4条15丁目1-2", "tel": "090-9432-4896"}, {"no": "400533", "name": "神田 裕介", "addr": "旭川市川端町2条6丁目3-7", "tel": "090-9517-3424"}, {"no": "400534", "name": "御囲 知寛", "addr": "中川郡中川町字国府288番", "tel": "090-6260-1626"}, {"no": "400535", "name": "佐伯 剛志", "addr": "名寄市西5条北3丁目25番地", "tel": "090-6876-7002"}, {"no": "400536", "name": "田浦 俊文", "addr": "富良野市春日町8-6", "tel": "080-1863-7660"}, {"no": "400537", "name": "円山 勝文", "addr": "旭川市東4条6丁目4-12", "tel": "090-3390-5974"}, {"no": "400538", "name": "浦 宏行", "addr": "旭川市末広3条7丁目7-1", "tel": "090-5079-8370"}, {"no": "400539", "name": "髙野 昇平", "addr": "名寄市西13条南7丁目1-11", "tel": "090-6999-6069"}, {"no": "400540", "name": "竹内 茂", "addr": "旭川市春光6条3丁目3-20", "tel": "080-1891-1309"}, {"no": "400541", "name": "深川 裕則", "addr": "旭川市春光台2条3丁目3-9", "tel": "090-5073-9374"}, {"no": "400542", "name": "戸梶 耕司", "addr": "名寄市字徳田65-188", "tel": "080-1898-2998"}, {"no": "400543", "name": "尾近 雅信", "addr": "旭川市末広東1条6丁目1-24", "tel": "090-8275-5532"}, {"no": "400544", "name": "村中 清志", "addr": "旭川市西御料3条3丁目2-7", "tel": "080-1874-2677"}, {"no": "400545", "name": "ひかり美容室", "addr": "旭川市末広5条8丁目", "tel": ""}, {"no": "400546", "name": "山崎 秀泰", "addr": "旭川市大町1条16丁目307-77", "tel": "080-6080-5139"}, {"no": "400547", "name": "鬼栁 臣志", "addr": "旭川市末広1条11丁目2-19", "tel": "090-6212-8849"}, {"no": "400548", "name": "伊藤 雅紀", "addr": "苫前郡羽幌町北3条1丁目10-1", "tel": "080-5580-4252"}, {"no": "400549", "name": "船越 敏雄", "addr": "深川市4条4-34", "tel": "090-9759-5193"}, {"no": "400550", "name": "金子 慎司", "addr": "空知郡上富良野町南町3丁目6-29", "tel": "090-1524-7415"}, {"no": "400551", "name": "中山 幸司", "addr": "旭川市永山9条12丁目1-15", "tel": "090-8896-0294"}, {"no": "400552", "name": "ステップワン アビリティ", "addr": "旭川市旭町1条20丁目2987番地の26", "tel": "080-5595-1736"}, {"no": "400553", "name": "坂本 正一", "addr": "稚内市声問3丁目16-26", "tel": "090-3111-6658"}, {"no": "400554", "name": "庄子 幸子", "addr": "旭川市旭町2条5丁目12-160", "tel": "090-2814-5100"}, {"no": "400555", "name": "齋藤 克司", "addr": "雨竜郡北竜町字和53-22", "tel": "090-3778-5135"}, {"no": "400556", "name": "渡部 哲成", "addr": "上川郡東川町西７号北２３番地", "tel": "090-6215-3905"}, {"no": "400557", "name": "佐藤 浩介", "addr": "旭川市西御料2条3丁目1-19", "tel": "090-2874-4675"}, {"no": "400558", "name": "高橋 晋", "addr": "中川郡中川町字中川233-35", "tel": "090-1522-1276"}, {"no": "400559", "name": "鈴木 義博", "addr": "上川郡美瑛町大町1丁目23-7", "tel": "080-5586-9559"}, {"no": "400560", "name": "平松 大吾", "addr": "上川郡東神楽町ひじり野南3条2丁目4-17", "tel": "090-8277-6893"}, {"no": "400561", "name": "近藤 邦彦", "addr": "旭川市豊岡2条6丁目7-8", "tel": "090-3019-9655"}, {"no": "400562", "name": "窪田 雅仁", "addr": "旭川市豊岡14条6丁目3-16", "tel": "090-7057-4559"}, {"no": "400563", "name": "菊池 達也", "addr": "留萌市千鳥町1丁目34-7", "tel": "090-2053-7727"}, {"no": "400564", "name": "佐藤 陽介", "addr": "深川市緑町15-55", "tel": "090-2694-9236"}, {"no": "400565", "name": "柳田 草太", "addr": "旭川市西御料3条3丁目1-12", "tel": "090-5983-3084"}, {"no": "400566", "name": "瀨川 貴之", "addr": "雨竜郡妹背牛町１区12町内", "tel": "090-9087-1121"}, {"no": "400567", "name": "中山 裕一郎", "addr": "旭川市永山5条17丁目2-12-1", "tel": "090-8373-7533"}, {"no": "400568", "name": "前田 裕輔", "addr": "東神楽町南2条西2丁目5-7", "tel": "080-6094-6750"}, {"no": "400569", "name": "七尾 隆生", "addr": "稚内市富岡５丁目2番2号", "tel": "080-1860-8852"}, {"no": "400570", "name": "成田 豊", "addr": "旭川市神楽岡13条4丁目1番8号", "tel": "090-9088-2647"}, {"no": "400571", "name": "川村 周平", "addr": "旭川市川端町４条９丁目６番１１号", "tel": "090-4879-8542"}, {"no": "400572", "name": "福澤 宗介", "addr": "旭川市永山10条12丁目2番3号", "tel": "090-6697-8231"}, {"no": "400573", "name": "山口 基", "addr": "旭川市神楽1条8丁目2番2号", "tel": "090-1522-4684"}, {"no": "400574", "name": "森井 康友", "addr": "東神楽町ひじり野北1条10丁目1-18", "tel": "090-3897-0135"}, {"no": "400575", "name": "益塚 隆幸", "addr": "東神楽町ひじり野北1条10丁目1-19", "tel": "090-8632-0003"}, {"no": "400576", "name": "松田 隆", "addr": "旭川市神居7条10丁目2-16", "tel": "090-7650-7270"}, {"no": "400577", "name": "街道 宣仁", "addr": "旭川市春光6条7丁目7番1号", "tel": "090-9520-0472"}, {"no": "400578", "name": "影田 智彦", "addr": "網走市字潮見165-25", "tel": "090-6995-6941"}, {"no": "400579", "name": "川井 靖", "addr": "上川郡東神楽町南2条東1丁目7-2", "tel": "090-3391-3602"}, {"no": "400580", "name": "下谷 亮平", "addr": "旭川市神楽岡11条6丁目1番7号", "tel": "090-5989-4570"}, {"no": "400581", "name": "飯沼 剛史", "addr": "樺戸郡新十津川町字中央533-16", "tel": "080-4047-9359"}, {"no": "400582", "name": "惣角 卓史", "addr": "旭川市宮下通22丁目1974-325", "tel": "090-3778-5287"}, {"no": "400583", "name": "小西 拓也", "addr": "旭川市緑町２２丁目２１９６－９", "tel": ""}, {"no": "400584", "name": "平尾 悟", "addr": "旭川市末広３条７丁目7-9-2", "tel": "090-9750-8235"}, {"no": "400585", "name": "鯖戸 貴也", "addr": "名寄市西10条南3丁目9番地13", "tel": "090-7642-2671"}, {"no": "400586", "name": "藤林 周吾", "addr": "旭川市豊岡5条1丁目2番16号", "tel": "090-9751-8688"}, {"no": "400587", "name": "谷口 英憲", "addr": "旭川市大町1条17丁目307番地151", "tel": "090-7051-7157"}, {"no": "400588", "name": "田中 団", "addr": "上川郡東神楽町ひじり野南3条4丁目3-8", "tel": "090-6263-0626"}, {"no": "400589", "name": "三上 洋平", "addr": "上川郡東川町北町3丁目3-7", "tel": "090-6445-3250"}, {"no": "400590", "name": "山出 宏二", "addr": "砂川市西５条北７丁目１－８", "tel": "090-2696-6927"}, {"no": "400591", "name": "斎藤 志津江", "addr": "旭川市宮下通23丁目104番地の25", "tel": "090-3390-4433"}, {"no": "400592", "name": "清水 崇", "addr": "旭川市神楽4条3丁目1番21号", "tel": "090-5982-6887"}, {"no": "400593", "name": "服部 雄介", "addr": "上川郡鷹栖町北野東3条1丁目6番19号", "tel": "090-7514-0987"}, {"no": "400594", "name": "飴村 光", "addr": "旭川市東光10条3丁目2-17", "tel": "090-7513-1631"}, {"no": "400595", "name": "佐野 雄一", "addr": "上川郡東神楽町ひじり野北１条９丁目２番５号", "tel": "090-1563-1103"}, {"no": "400596", "name": "石郷岡 卓哉", "addr": "苫前郡羽幌町南7条1丁目2番地の9", "tel": "080-5680-5205"}, {"no": "400597", "name": "大矢根 諒", "addr": "苫前郡苫前町字苫前303番地の3", "tel": "090-2072-4811"}, {"no": "400598", "name": "髙橋 佳祐", "addr": "旭川市末広6条6丁目5-14", "tel": "090-5952-2638"}, {"no": "400599", "name": "馬場 軍司", "addr": "士別市東8条2丁目6番", "tel": "090-3892-2756"}, {"no": "400600", "name": "中森 義隆", "addr": "旭川市神楽岡12条3丁目1番12号", "tel": "090-1035-3853"}, {"no": "400601", "name": "守家 純二", "addr": "上川郡東川町南町3丁目17番8号", "tel": "090-9753-2542"}, {"no": "400602", "name": "勝見 友則", "addr": "旭川市東4条6丁目4番10号", "tel": "090-9439-1250"}, {"no": "400603", "name": "平間 政敏", "addr": "旭川市11条通22丁目１番地20", "tel": "０９０－８７０５－５６５１"}, {"no": "400604", "name": "後藤 一貴", "addr": "旭川市春光6条7丁目7-17", "tel": "080-2874-0618"}, {"no": "400605", "name": "興証寺(信田大行)", "addr": "旭川市末広東2条3丁目1番18号", "tel": "090-4072-7849"}, {"no": "400606", "name": "谷 仁志", "addr": "旭川市末広6条6丁目6番9号", "tel": "080-5585-7840"}, {"no": "400607", "name": "伊藤 延成", "addr": "旭川市永山5条20丁目2番10号", "tel": "０９０－２８７６－５４８０"}, {"no": "400608", "name": "大石 隆央", "addr": "上川郡比布町緑町3丁目5番39号", "tel": "090-9519-5731"}, {"no": "400609", "name": "稲垣 司", "addr": "旭川市神楽岡6条7丁目3番8号", "tel": "090-2813-0050"}, {"no": "400610", "name": "村上 光雄", "addr": "旭川市4条通23丁目5番156", "tel": "090-3777-2236"}, {"no": "400611", "name": "石川 周一", "addr": "名寄市字徳田228番地8", "tel": "090-4878-9785"}, {"no": "400612", "name": "鬼頭 広", "addr": "雨竜郡秩父別町1505番地の45", "tel": "090-9513-4491"}, {"no": "400613", "name": "後藤 雅志", "addr": "旭川市末広4条5丁目4番6号", "tel": "090-9757-5320"}, {"no": "400614", "name": "下村 祐介", "addr": "旭川市永山7条14丁目1番21-2号", "tel": "080-5582-8077"}, {"no": "400615", "name": "河合 武尊", "addr": "旭川市神楽岡6条7丁目4番5号", "tel": "090-3774-4472"}, {"no": "400616", "name": "村中 務", "addr": "旭川市豊岡2条10丁目3番22号", "tel": "090-9751-9870"}, {"no": "400617", "name": "白石 晃央", "addr": "旭川市西御料3条3丁目2番34号", "tel": "090-7659-3180"}, {"no": "400618", "name": "大森 清矢", "addr": "旭川市末広4条8丁目8番5-2号", "tel": "090-5235-5245"}, {"no": "400619", "name": "星野 弘吉", "addr": "深川市北光町1丁目2番61号", "tel": "080-1883-4004"}, {"no": "400620", "name": "大谷 剛史", "addr": "旭川市北門町15丁目2159番地の170", "tel": "080-4047-9111"}, {"no": "400621", "name": "紙谷 憲明", "addr": "旭川市忠和5条5丁目6番7号", "tel": "090-9087-1234"}, {"no": "400622", "name": "宮林 章", "addr": "旭川市神楽4条2丁目1番8号", "tel": "090-8903-0236"}, {"no": "400623", "name": "辻野 秀俊", "addr": "旭川市錦町12丁目3083番地の2", "tel": "090-8709-6040"}, {"no": "400624", "name": "岩本 陽介", "addr": "旭川市西御料4条3丁目2番11号", "tel": "090-5074-1954"}, {"no": "400625", "name": "杉村 和徳", "addr": "旭川市永山4条22丁目4番21号", "tel": "090-8278-0726"}, {"no": "400626", "name": "中山 恒介", "addr": "旭川市東光10条4丁目5番7号", "tel": "090-9754-4445"}, {"no": "400627", "name": "斉藤 龍英", "addr": "旭川市神居8条12丁目2番7-2号", "tel": "090-2077-2091"}, {"no": "400628", "name": "高橋 美恵", "addr": "旭川市東旭川町豊田475-2", "tel": "090-9877-9881"}, {"no": "400629", "name": "佐藤 潤", "addr": "中川郡美深町字西町37番地の2", "tel": "090-9088-6609"}, {"no": "400630", "name": "窪田 圭祐", "addr": "旭川市末広4条7丁目8番4号", "tel": "080-1899-0030"}, {"no": "400631", "name": "石崎 彰", "addr": "上川郡東神楽町ひじり野北2条2丁目4番17号", "tel": ""}, {"no": "400632", "name": "櫛桁 里嘉", "addr": "恵庭市恵み野東7丁目2番1", "tel": "090-9087-2038"}, {"no": "400633", "name": "北川 慎", "addr": "旭川市春光2条8丁目7番1号", "tel": "080-3268-8013"}, {"no": "400634", "name": "工藤 善之", "addr": "枝幸郡枝幸町風烈布628番地24", "tel": "090-3018-0124"}, {"no": "400635", "name": "合田 正人", "addr": "上川郡比布町北3線10号", "tel": "090-6212-3672"}, {"no": "400636", "name": "坂東 司", "addr": "深川市新光町1丁目3番26号", "tel": "090-2058-2164"}, {"no": "400637", "name": "木下 和也", "addr": "旭川市永山9条15丁目3番6号", "tel": "080-1881-0558"}, {"no": "400638", "name": "曽我部 雄太", "addr": "深川市5条13番22号", "tel": "090-6448-3600"}, {"no": "400639", "name": "角田 博", "addr": "旭川市宮下通22丁目1974番地の75", "tel": "080-1895-7718"}, {"no": "400640", "name": "川合 亮平", "addr": "上川郡東神楽町南1条西1丁目2番37号", "tel": "090-7658-8479"}, {"no": "400641", "name": "喜多 章博", "addr": "旭川市春光6条7丁目7番5号", "tel": "090-8706-3180"}, {"no": "400642", "name": "北川 智貴", "addr": "士別市東7条8丁目454-92", "tel": "090-5986-9657"}, {"no": "400643", "name": "佐渡 智明", "addr": "旭川市豊岡4条7丁目4番12号", "tel": "080-3237-0728"}, {"no": "400644", "name": "大西 隼人", "addr": "士別市東5条北3丁目11番地2", "tel": "090-9525-0827"}, {"no": "400645", "name": "媚山 将平", "addr": "旭川市豊岡2条8丁目5番15号", "tel": "080-6066-4578"}, {"no": "400646", "name": "土屋 雅史", "addr": "上川郡東川町東4号北5番地", "tel": "080-3234-3641"}, {"no": "400647", "name": "今家 大輔", "addr": "上川郡東神楽町北1条西2丁目10番1号", "tel": "090-7583-2142"}, {"no": "400648", "name": "佐藤 隆裕", "addr": "苫前郡苫前町字栄浜174番地2", "tel": "090-3112-8354"}, {"no": "400649", "name": "山崎 大樹", "addr": "旭川市春光6条7丁目7番10号", "tel": "090-9528-8008"}, {"no": "400650", "name": "信野 良太", "addr": "旭川市春光台4条5丁目10番1号", "tel": "090-7645-5520"}, {"no": "400651", "name": "樫木 孝士", "addr": "士別市西2条1丁目9-9", "tel": "090-8639-8751"}, {"no": "400652", "name": "黒澤 潤", "addr": "上川郡東神楽町北1条西2丁目10番14号", "tel": "090-1644-7462"}, {"no": "400653", "name": "宮武 浩之", "addr": "上川郡東神楽町ひじり野北1条10丁目4番3号", "tel": "090-5957-9208"}, {"no": "400654", "name": "檜山 敬介", "addr": "紋別郡遠軽町1条通北9丁目1番地12", "tel": "090-8429-6892"}, {"no": "400655", "name": "芳賀 正幸", "addr": "名寄市風連町西町166番地3", "tel": "090-7641-7730"}, {"no": "400656", "name": "戸田 佳孝", "addr": "上川郡鷹栖町北野東5条1丁目4-16", "tel": "080-5596-3003"}, {"no": "400657", "name": "増田 慶仁", "addr": "深川市北光町1丁目15-20", "tel": "090-6268-4502"}, {"no": "400658", "name": "佐々木 貴大", "addr": "深川市広里町1丁目7-82", "tel": "090-5988-4304"}, {"no": "400659", "name": "安彦 尚也", "addr": "枝幸郡枝幸町新栄町789-25", "tel": "090-2052-5691"}, {"no": "400660", "name": "佐竹 隆伸", "addr": "旭川市春光7条5丁目7番4号", "tel": "090-6265-6641"}, {"no": "400661", "name": "逢坂 英樹", "addr": "網走郡美幌町字稲美109番地107", "tel": "090-7650-7810"}, {"no": "400662", "name": "松本 陽介", "addr": "上川郡美瑛町字瑠辺蘂北斗", "tel": "080-4048-6890"}, {"no": "400663", "name": "本郷 竜也", "addr": "旭川市東旭川南1条5丁目10-27", "tel": "090-9517-5465"}, {"no": "400664", "name": "水牧 幸夫", "addr": "旭川市神楽岡11条5丁目1番5号", "tel": "090-9515-2284"}, {"no": "400665", "name": "長谷川 兼則", "addr": "旭川市東光15条5丁目5番10号", "tel": ""}, {"no": "400666", "name": "加藤 侑", "addr": "旭川市東光3条10丁目4番5号", "tel": "090-6268-6757"}, {"no": "400667", "name": "森本 拓也", "addr": "旭川市永山4条18丁目1番19-2号", "tel": "090-5221-4633"}, {"no": "400668", "name": "橋本 昌季", "addr": "旭川市東光5条3丁目4-11", "tel": "090-1649-5982"}, {"no": "400669", "name": "早川 慶", "addr": "上川郡東神楽町北3条東2丁目5番4号", "tel": "090-7511-5606"}, {"no": "400670", "name": "蓬田 昌利", "addr": "旭川市東光4条8丁目2番17号", "tel": "080-5595-5438"}, {"no": "400671", "name": "川俣 高文", "addr": "旭川市南8条通21丁目1967番地の116", "tel": "090-6440-4142"}, {"no": "400672", "name": "橋本 一成", "addr": "旭川市末広6条1丁目2番11号", "tel": "080-5599-3963"}, {"no": "400673", "name": "森内 達也", "addr": "上川郡鷹栖町北野東5条3丁目3番5号", "tel": "090-2076-9654"}, {"no": "400674", "name": "安藤 貴広", "addr": "旭川市東1条3丁目3番18号", "tel": "080-1873-6825"}, {"no": "400675", "name": "大西 悟", "addr": "旭川市永山４条１０丁目2番20号", "tel": "080-1880-5757"}, {"no": "400676", "name": "加藤 久幸", "addr": "上川郡和寒町字三笠5番地", "tel": "090-6213-5364"}, {"no": "400677", "name": "望月 寛人", "addr": "旭川市神居8条12丁目1番9-2号", "tel": "090-9088-2502"}, {"no": "400678", "name": "佐藤 雅樹", "addr": "空知郡上富良野町南町1丁目2番13号", "tel": "080-5580-9888"}, {"no": "400679", "name": "浜 友彰", "addr": "旭川市春光6条7丁目7番6号", "tel": "090-2693-8866"}, {"no": "400680", "name": "三浦 充", "addr": "旭川市錦町20丁目2166番地の247", "tel": "080-3266-9012"}, {"no": "400681", "name": "佐々木 貴大", "addr": "旭川市西御料4条3丁目2番6号", "tel": "090-6228-0233"}, {"no": "400682", "name": "石橋 史也", "addr": "上川郡東川町南町4丁目8番24号", "tel": "080-1880-7971"}, {"no": "400683", "name": "秋島 佑太", "addr": "旭川市神居4条3丁目1番18号", "tel": "090-5985-2044"}, {"no": "400684", "name": "熊谷 純一", "addr": "滝川市東町3丁目4番28号", "tel": "090-7649-5832"}, {"no": "400685", "name": "下内 昭人", "addr": "旭川市旭町1条12丁目688番地125", "tel": "090-7644-5688"}, {"no": "400686", "name": "中村 輝充", "addr": "旭川市永山５条24丁目3番15号", "tel": "090-1645-9673"}, {"no": "400687", "name": "鏡 太陽", "addr": "旭川市永山4条16丁目10番21号", "tel": "090-7057-6723"}, {"no": "400688", "name": "市川 知広", "addr": "士別市東2条3丁目9番地", "tel": "090-2074-2916"}, {"no": "400689", "name": "斉藤 浩之", "addr": "旭川市北門町18丁目2153-161", "tel": ""}, {"no": "400690", "name": "撫養 徳宏", "addr": "旭川市末広2条8丁目10番6号", "tel": "080-5593-2055"}, {"no": "400691", "name": "長谷川 孝", "addr": "上川郡東川町西町7丁目2-3", "tel": "080-1894-8844"}, {"no": "400692", "name": "船山 真", "addr": "旭川市東光7条3丁目3番18号", "tel": "090-9433-5624"}, {"no": "400693", "name": "早坂 智史", "addr": "旭川市緑ヶ丘4条1丁目1番地の21", "tel": "090-2811-1954"}, {"no": "400694", "name": "平野 弘道", "addr": "士別市武徳町44線東6号", "tel": "090-6210-1941"}, {"no": "400695", "name": "米澤 雄太", "addr": "旭川市永山8条11丁目7番12号", "tel": "080-6095-5596"}, {"no": "400696", "name": "村田 寿宏", "addr": "苫前郡初山別村有明334番地の１", "tel": "080-5582-3992"}, {"no": "400697", "name": "舛田 明宏", "addr": "旭川市旭神3条4丁目10番25号", "tel": "080-5580-9880"}, {"no": "400698", "name": "住吉 和希", "addr": "旭川市南1条通21丁目1974番地の42", "tel": "090-8903-7154"}, {"no": "400699", "name": "井上 善就", "addr": "旭川市末広東2条1丁目2番11号", "tel": "090-8902-1278"}, {"no": "400700", "name": "笹木 昌宏", "addr": "旭川市豊岡6条8丁目9番16号", "tel": "090-3468-6642"}, {"no": "400701", "name": "大塚 茂樹", "addr": "旭川市永山10条15丁目5番11号", "tel": "090-5955-6398"}, {"no": "400702", "name": "小峯 晋哉", "addr": "深川市六条12番9号", "tel": "080-1895-2068"}, {"no": "400703", "name": "伊藤 慎悟", "addr": "旭川市永山9条15丁目4番24号", "tel": "090-8279-3511"}, {"no": "400704", "name": "南谷 克明", "addr": "旭川市豊岡5条8丁目4番3号", "tel": "090-6268-3929"}, {"no": "400705", "name": "吉田 法貴", "addr": "上川郡当麻町3条西3丁目1番127号", "tel": "080-5590-9773"}, {"no": "400706", "name": "関 晋太郎", "addr": "旭川市北門町12丁目2900番地の32", "tel": "090-5225-5790"}, {"no": "400707", "name": "欠番", "addr": "", "tel": ""}, {"no": "400708", "name": "四釜 武史", "addr": "旭川市末広4条6丁目5番31", "tel": "090-2054-4928"}, {"no": "400709", "name": "戸田 浩文", "addr": "中富良野町東１線北６号", "tel": "090-5955-7853"}, {"no": "400710", "name": "村田 和洋", "addr": "旭川市豊岡5条8丁目4番４号", "tel": "090-2076-9519"}, {"no": "400711", "name": "井内 貴仁", "addr": "旭川市豊岡5条8丁目4番5号", "tel": "090-6447-1692"}, {"no": "400712", "name": "小北 真美", "addr": "旭川市旭町1条12丁目688番地の54", "tel": ""}, {"no": "400713", "name": "高栄 政輝", "addr": "深川市北光町3丁目2番5号", "tel": "090-9543-2795"}, {"no": "400714", "name": "長谷 隆広", "addr": "上川郡上川町栄町33番地36", "tel": "080-1882-3187"}, {"no": "400715", "name": "木村 予穂子", "addr": "旭川市西御料2条3丁目3番3号", "tel": "090-8372-7377"}, {"no": "400716", "name": "佐藤 翔一郎", "addr": "旭川市東光24条6丁目5番15号", "tel": "090-7583-2935"}, {"no": "400717", "name": "関根 悠斗", "addr": "上川郡東神楽町ひじり野南2条4丁目3番16-2号", "tel": "090-2876-0312"}, {"no": "400718", "name": "高瀬 大地", "addr": "旭川市東光9条8丁目3番9号", "tel": "080-5596-9448"}, {"no": "400719", "name": "澤 奈央", "addr": "旭川市緑町16丁目3021番地の46", "tel": "090-3468-8033"}, {"no": "400720", "name": "渡辺 健助", "addr": "深川市西町18番25号", "tel": "090-8906-6843"}, {"no": "400721", "name": "莫 日根", "addr": "上川郡東川町南町1丁目8番7号", "tel": "090-7510-8074"}, {"no": "400722", "name": "平沢 拓也", "addr": "上川郡東川町東町3丁目6番4号", "tel": "080-3238-1807"}, {"no": "400723", "name": "斉藤 優太", "addr": "上川郡美瑛町大町2丁目1番28号", "tel": "090-7651-0370"}, {"no": "400724", "name": "北條 貴也", "addr": "旭川市南9条通26丁目589番地の51", "tel": "090-2058-9326"}, {"no": "400725", "name": "大越 真", "addr": "旭川市春光台5条2丁目18番26号", "tel": "090-8902-0968"}, {"no": "400726", "name": "武田 洋太", "addr": "旭川市春光6条7丁目7番19号", "tel": "090-6448-9070"}, {"no": "400727", "name": "浅野目 利幸", "addr": "旭川市神楽岡13条3丁目1番8号", "tel": "080-1875-6373"}, {"no": "400728", "name": "梶本 毅郎", "addr": "旭川市神楽5条11丁目4番2-2号", "tel": "080-3260－2416"}, {"no": "400729", "name": "山田 真知子", "addr": "旭川市緑ヶ丘2条3丁目1番地の4", "tel": ""}, {"no": "400730", "name": "佐藤 裕也", "addr": "旭川市東光7条2丁目3番4号", "tel": "080-5594-1178"}, {"no": "400731", "name": "笹木 慎也", "addr": "旭川市春光6条7丁目7番16号", "tel": "090-7465-3660"}, {"no": "400732", "name": "山本 仁", "addr": "旭川市東光１条６丁目1番16号", "tel": "090-6999-6587"}, {"no": "400733", "name": "瀬戸 優貴", "addr": "雨竜郡秩父別町字秩父別1505番地の40", "tel": "090-2054-2471"}, {"no": "400734", "name": "押田 大志", "addr": "上川郡下川町渓和1172番1", "tel": "080-6097-6483"}, {"no": "400735", "name": "高畑 佑真", "addr": "旭川市大町2条17丁目234番地の51", "tel": "080-5596-5058"}, {"no": "400736", "name": "髙橋 光", "addr": "旭川市春光台3条8丁目3番地の7", "tel": "090-2690-2889"}, {"no": "400737", "name": "中島 淳", "addr": "旭川市南１条通21丁目1974番304", "tel": "090-3773-6429"}, {"no": "400738", "name": "菅原 秀和", "addr": "旭川市春光2条9丁目4番18号", "tel": "090-4877-8941"}, {"no": "400739", "name": "田中 拓也", "addr": "旭川市神楽岡11条4丁目1番3号", "tel": "090-9527-5501"}, {"no": "400740", "name": "(株)ナカムラ", "addr": "旭川市永山8条14丁目4番6号", "tel": "0166-73-8474"}, {"no": "400741", "name": "東海 満徳", "addr": "空知郡上富良野町東町5丁目9番25号", "tel": "090-9082-9666"}, {"no": "400742", "name": "入江 徹", "addr": "旭川市神楽岡1条4丁目1番10号", "tel": "090-6996-1313"}, {"no": "400743", "name": "鈴木 淳也", "addr": "旭川市末広5条8丁目1番13号", "tel": "090-6217-9154"}, {"no": "400744", "name": "佐藤 和俊", "addr": "江別市上江別南町18番地の5", "tel": "090-9511-8566"}, {"no": "400745", "name": "安部 健一郎", "addr": "旭川市神楽岡12条4丁目1番3号", "tel": "090-2691-0001"}, {"no": "400746", "name": "横枕 英純", "addr": "士別市西3条1丁目1-3", "tel": "090-3770-6826"}, {"no": "400747", "name": "菊地 元也", "addr": "上川郡東神楽町ひじり野北1条3丁目1番6-2号", "tel": "080-5593-4799"}, {"no": "400748", "name": "長井 義仁", "addr": "旭川市永山14条3丁目2番13号", "tel": "090-3777-2047"}, {"no": "400749", "name": "宝田 卓哉", "addr": "旭川市旭岡4丁目4番地の13", "tel": "090-9089-7219"}, {"no": "400750", "name": "西村 剛志", "addr": "砂川市吉野4条南5丁目1番25号", "tel": "090-6691-9875"}, {"no": "400751", "name": "遠藤 秀樹", "addr": "樺戸郡新十津川町字中央519番7", "tel": "090-6872-8578"}, {"no": "400752", "name": "田中 智裕", "addr": "旭川市永山4条16丁目10番20号", "tel": "090-7057-2648"}, {"no": "400753", "name": "新岡 孝弘（松村俊輝：中古購入）", "addr": "美瑛町寿町4丁目11番1104", "tel": "080-6093-9426"}, {"no": "400754", "name": "福島 健一", "addr": "旭川市西御料3条3丁目1番16号", "tel": "090-9433-3033"}, {"no": "400755", "name": "松岡 歩", "addr": "上川郡美瑛町大町1丁目9番20号", "tel": "090-6872-6668"}, {"no": "400756", "name": "飯村 充弘", "addr": "旭川市末広2条15丁目9番9号", "tel": "090-9087-1612"}, {"no": "400757", "name": "藤野 忠", "addr": "夕張郡長沼町しらかば2丁目2番1号", "tel": "090-8630-6311"}, {"no": "400758", "name": "高田 渡", "addr": "旭川市西御料3条3丁目2番27号", "tel": "090-6990-4898"}, {"no": "400759", "name": "小山 浩範", "addr": "旭川市錦町18丁目2152番地の100", "tel": "080-6086-9220"}, {"no": "400760", "name": "多地 貴則", "addr": "旭川市東光4条1丁目2番24号", "tel": "090-3119-3963"}, {"no": "400761", "name": "村上 達哉", "addr": "砂川市吉野1条南8丁目3番21号", "tel": "090-6999-7663"}, {"no": "400762", "name": "今野 潤也・佳奈", "addr": "旭川市末広6条1丁目6番7号", "tel": "090-7652-4997"}, {"no": "400763", "name": "林 綾香", "addr": "旭川市神楽岡12条4丁目1番15号", "tel": "090-9437-2477"}, {"no": "400764", "name": "馬場 勇輝", "addr": "名寄市西11条南4丁目4番地19", "tel": "080-1898-2065"}, {"no": "400765", "name": "五十嵐 肇", "addr": "旭川市南4条通26丁目498番の3", "tel": "090-8632-4350"}, {"no": "400766", "name": "成田 智哉・さやか", "addr": "旭川市神居8条16丁目1番18号", "tel": "080-4365-4761"}, {"no": "400767", "name": "佐々木 豊・愛美", "addr": "旭川市神居7条18丁目1番8号", "tel": "080-6080-0157"}, {"no": "400768", "name": "小野 倫", "addr": "旭川市神楽岡9条3丁目3番14-2号", "tel": "090-9748-2525"}, {"no": "400769", "name": "祢津 孝幸・論子", "addr": "旭川市永山7条2丁目1番14号", "tel": "090-6215-4139"}, {"no": "400770", "name": "齊木 正大", "addr": "旭川市東光16条4丁目1番15号", "tel": "090-9757-2095"}, {"no": "400771", "name": "遠藤 亮介", "addr": "旭川市東光12条1丁目2番9号", "tel": "090-1380-8504"}, {"no": "400772", "name": "八重樫 夕葵", "addr": "旭川市豊岡５条８丁目4番5-2号", "tel": "090-5959-4427"}, {"no": "400773", "name": "石川 英則", "addr": "旭川市豊岡12条7丁目3番16号", "tel": "090-1648-8254"}, {"no": "400774", "name": "松本 健太", "addr": "旭川市東光14条4丁目1番14号", "tel": "090-5071-9248"}, {"no": "400775", "name": "早坂 達哉", "addr": "旭川市神楽岡２条５丁目2番3号", "tel": "090-6269-1692"}, {"no": "400776", "name": "渡邊 大地・有果", "addr": "旭川市東光8条5丁目2番5号", "tel": "090-8637-3707"}, {"no": "400777", "name": "川瀬 光彦", "addr": "旭川市永山3条22丁目3番39-2号", "tel": "090-8896-7915"}, {"no": "400778", "name": "石井 好彦", "addr": "滝川市空知町1丁目3番25号", "tel": "090-5954-9682"}, {"no": "400779", "name": "齊藤 宏幸", "addr": "士別市東6条北7丁目13番地", "tel": "090-1527-4081"}, {"no": "400780", "name": "長谷川 和哉", "addr": "旭川市新富2条2丁目3番8号", "tel": "090-5959-4656"}, {"no": "400781", "name": "米森 悠哉", "addr": "旭川市末広1条11丁目1番5号", "tel": "090-2817-8892"}, {"no": "400782", "name": "星見 圭太", "addr": "旭川市豊岡6条8丁目4番2号", "tel": "090-3114-7422"}, {"no": "400783", "name": "水本 英樹", "addr": "上川郡美瑛町大町1丁目16番22号", "tel": "090-8895-6201"}, {"no": "400784", "name": "倉増 正志", "addr": "東神楽町北1条西2丁目11番14号", "tel": "090-5952-6654"}, {"no": "400785", "name": "小川 雅史", "addr": "旭川市末広1条11丁目1番8号", "tel": "090-6444-6180"}, {"no": "400786", "name": "土肥 祐太", "addr": "旭川市末広7条1丁目5番5号", "tel": "090-6269-1522"}, {"no": "400787", "name": "下保 健太･ちひろ", "addr": "旭川市神居5条9丁目3番19号", "tel": "090-5225-8635"}, {"no": "400788", "name": "矢口 拓・なるみ", "addr": "旭川市末広5条6丁目5番4号", "tel": "090-2815-9601"}, {"no": "400789", "name": "高橋 慶多", "addr": "旭川市末広1条11丁目1番6号", "tel": "090-6878-6311"}, {"no": "400790", "name": "長勢 友宏", "addr": "旭川市豊岡7条5丁目2番29-2号", "tel": "090-1644-6730"}, {"no": "400791", "name": "皆口 拓郎", "addr": "旭川市北門町14丁目2144番地の80", "tel": "090-9523-2875"}, {"no": "400792", "name": "村澤 圭亮", "addr": "滝川市朝日町東1丁目14番9号", "tel": "080-3238-4452"}, {"no": "400793", "name": "齊藤 裕也", "addr": "砂川市吉野2条南3丁目7番5号", "tel": "080-1877-4733"}, {"no": "400794", "name": "奥村 智哉", "addr": "士別市西2条11丁目452番地237", "tel": "080-5589-0321"}, {"no": "400795", "name": "金丸 司", "addr": "旭川市永山9条4丁目9番1号", "tel": "090-6991-0550"}, {"no": "400796", "name": "印藤 文晴", "addr": "富良野市桂木町4444-22、4444-30", "tel": "090-5222-4635"}, {"no": "400797", "name": "神馬 政光･由佳", "addr": "滝川市扇町1丁目4番33号", "tel": "090-6262-1353"}, {"no": "400798", "name": "大河内 岬", "addr": "空知郡中富良野町北町2番4号", "tel": "090-6877-4734"}, {"no": "400799", "name": "佐渡 弘人", "addr": "旭川市旭岡4丁目5774番地の49", "tel": "090-5986-4517"}, {"no": "400800", "name": "村田 直大・麻美", "addr": "旭川市東光6条5丁目4番7-2号", "tel": "090-9527-2484"}, {"no": "400801", "name": "佐藤 孝行", "addr": "旭川市新富3条2丁目4番14号", "tel": "090-2696-6241"}, {"no": "400802", "name": "田中 義範", "addr": "旭川市東5条6丁目4番3号", "tel": "090-7651-9893"}, {"no": "400803", "name": "中村 大輔", "addr": "旭川市末広3条8丁目4番6号", "tel": "080-1876-4619"}, {"no": "400804", "name": "髙橋 英明", "addr": "岩見沢市緑が丘1丁目18番18", "tel": "090-5986-0879"}, {"no": "400805", "name": "西田 広樹", "addr": "旭川市末広4条1丁目4番12号", "tel": "090-2050-4475"}, {"no": "400806", "name": "星 直人・千晶", "addr": "旭川市東旭川北2条5丁目9番12号", "tel": "090-9758-6228"}, {"no": "400807", "name": "山中 孝則・カンナ", "addr": "旭川市南1条25丁目103番地の61", "tel": "090-9522-2354"}, {"no": "400808", "name": "藤原 拓", "addr": "上川郡鷹栖町北野西4条1丁目5番9号", "tel": "080-6062-6444"}, {"no": "400809", "name": "(株)ナカムラ", "addr": "旭川市永山9条5丁目6番6号", "tel": ""}, {"no": "400810", "name": "南谷 崇幸", "addr": "旭川市豊岡５条6丁目1番18号", "tel": "090-7050-5670"}, {"no": "400811", "name": "岩村 将裕", "addr": "旭川市東5条9丁目3番20号", "tel": "090-5070-6079"}, {"no": "400812", "name": "木村 和弥", "addr": "旭川市末広6条3丁目4番26号", "tel": "080-3297-7021"}, {"no": "400813", "name": "郡 健二郎", "addr": "旭川市豊岡4条7丁目4番4号", "tel": "090-5989-1894"}, {"no": "400814", "name": "松田 隆之・麻美", "addr": "旭川市神居6条16丁目5番5号", "tel": "080-3268-4877"}, {"no": "400815", "name": "佐藤 憲幸", "addr": "旭川市東光6条5丁目2番15-2号", "tel": "090-5073-4498"}, {"no": "400816", "name": "松本 勇輔", "addr": "旭川市旭町1条19丁目2156番地の21", "tel": "090-5231-4014"}, {"no": "400817", "name": "斉藤 祥吾・結衣", "addr": "名寄市西6条南10丁目2-117", "tel": "090-5073-3701"}, {"no": "400818", "name": "木下 伸大", "addr": "滝川市空知町1丁目6番16号", "tel": "090-9754-6364"}, {"no": "400819", "name": "白田 武士", "addr": "猿払村芦野2184-28", "tel": "090-2699-2091"}, {"no": "400820", "name": "梶 修人", "addr": "旭川市神楽岡8条５丁目1番16号", "tel": "090-7513-6589"}, {"no": "400821", "name": "佐藤 早紀・松倉 一惠", "addr": "旭川市豊岡2条8丁目3番3号", "tel": "090-2873-1157"}, {"no": "400822", "name": "森川 智志", "addr": "旭川市永山1条20丁目2番6号", "tel": "0166-74-8186"}, {"no": "400823", "name": "杉浦 良枝", "addr": "旭川市神楽岡4条6丁目4番17号", "tel": "090-8633-0617"}, {"no": "400824", "name": "鹿本 健太", "addr": "旭川市春光台4条3丁目8番7", "tel": "090-1308-1500"}, {"no": "400825", "name": "石塚 亜由美", "addr": "旭川市春光台1条7丁目6-11", "tel": "090-5989-4961"}, {"no": "400826", "name": "米沢 太亨", "addr": "旭川市神楽岡10条4丁目4番4号", "tel": "090-6784-8773"}, {"no": "400827", "name": "神原 将和", "addr": "旭川市神楽岡13条5丁目2番17号", "tel": "070-2421-4774"}, {"no": "400828", "name": "長原 聖・夢菜", "addr": "上川郡鷹栖町北野東3条1丁目4番15号", "tel": "090-8891-9492"}, {"no": "400829", "name": "伊丸岡 圭一", "addr": "旭川市東２条３丁目3番4号", "tel": "090-8372-6607"}, {"no": "400830", "name": "瀨川 祥平", "addr": "旭川市末広東2条4丁目6番20号", "tel": "080-3268-6211"}, {"no": "400831", "name": "高野 尚", "addr": "上川町本町", "tel": "01658-2-3187"}, {"no": "400832", "name": "溝口 大和", "addr": "上川郡東川町西4号北21番地", "tel": "090-6218-5968"}, {"no": "400833", "name": "細川 雄太・美帆", "addr": "旭川市東光9条1丁目2番24号", "tel": "080-4047-9015"}, {"no": "400834", "name": "柚原 章平", "addr": "士別市大通東14丁目3144番地75", "tel": "090-3116-4149"}, {"no": "400835", "name": "齊藤 翔太", "addr": "上川郡東神楽町南2条西2丁目264-58", "tel": "090-6217-1886"}, {"no": "400836", "name": "大山 裕介", "addr": "上川郡東川町西町9丁目73-35", "tel": "080-1881-4924"}, {"no": "400837", "name": "増田 匡", "addr": "旭川市神楽岡13条4丁目3番11号", "tel": "090-5199-5093"}, {"no": "400838", "name": "青柳 大央", "addr": "旭川市曙3条7丁目2番16号", "tel": "090-1380-9239"}, {"no": "400839", "name": "石川 元樹", "addr": "上川郡東神楽町南2条西2丁目1番7号", "tel": "090-7646-7855"}, {"no": "400840", "name": "内村 光希", "addr": "名寄市西11条南8丁目48-38", "tel": "080-1898-6628"}, {"no": "400841", "name": "丹保 航介", "addr": "旭川市神楽6条14丁目1番14号", "tel": "090-7516-6370"}, {"no": "400842", "name": "馬場 亮次・優利", "addr": "旭川市神楽2条12丁目1番18号", "tel": "090-8895-2695"}, {"no": "400843", "name": "木立 康太", "addr": "旭川市緑ヶ丘3条1丁目2番地の43", "tel": "090-6697-8696"}, {"no": "400844", "name": "安藤 伸・梓", "addr": "旭川市東光9条4丁目3番5号", "tel": "080-5587-3771"}, {"no": "400845", "name": "田中 亮嗣", "addr": "深川市広里町4丁目1番20号", "tel": "080-1881-6052"}, {"no": "400846", "name": "阿部 紘己", "addr": "旭川市北門町14丁目2145番地の165", "tel": "090-5958-6441"}, {"no": "400847", "name": "藏重 雅俊・美香", "addr": "上川郡東川町西町9丁目7-11", "tel": "090-3118-0076"}, {"no": "400848", "name": "近藤 裕亮", "addr": "旭川市永山10条6丁目4番3号", "tel": "090-9516-8467"}, {"no": "400849", "name": "西田 英視", "addr": "上川郡和寒町字西町229番地", "tel": "090-5952-4443"}, {"no": "400850", "name": "木原 直人", "addr": "深川市文光町18番4号", "tel": "080-9619-1013"}, {"no": "400851", "name": "田中 誠也", "addr": "旭川市神楽6条14丁目1番14-2号", "tel": "090-8429-2020"}, {"no": "400852", "name": "金野 悦子", "addr": "美瑛町旭町4丁目9番19号", "tel": "0166-92-4106"}, {"no": "400853", "name": "鈴木 豪・香織", "addr": "上川郡東川町西町9丁目5番14号", "tel": "090-8372-1726"}, {"no": "400854", "name": "佐藤 健太", "addr": "旭川市神楽岡16条３丁目2番17号", "tel": "090-6994-8325"}, {"no": "400855", "name": "大槻 亮介", "addr": "上川郡和寒町字三笠6番地", "tel": "090-9522-7402"}, {"no": "400856", "name": "國貞 昌志", "addr": "旭川市末広2条14丁目6番2号", "tel": "090-1643-5921"}, {"no": "400857", "name": "小菅 貴裕・和恵", "addr": "雨竜郡北竜町字和３４番地1", "tel": "090-9514-1917"}, {"no": "400858", "name": "伊藤 圭吾", "addr": "旭川市旭岡4丁目5774番地の34", "tel": "090-2057-9779"}, {"no": "400859", "name": "平田 直紀", "addr": "上川郡美瑛町大町１丁目21番13号", "tel": "090-8708-8810"}, {"no": "400860", "name": "橋本 祐太", "addr": "名寄市風連町豊里1057番", "tel": "０８０－５５８５－６５６９"}, {"no": "400861", "name": "藤澤 穂高", "addr": "旭川市春光6条7丁目7番8号", "tel": "090-2814-7143"}, {"no": "400862", "name": "三橋 竜輔", "addr": "旭川市東光1条7丁目4番17号", "tel": "080-6096-3393"}, {"no": "400863", "name": "高瀬 裕太", "addr": "旭川市豊岡6条5丁目2番5号", "tel": "090-3898-2098"}, {"no": "400864", "name": "中田 咲穂", "addr": "旭川市東光12条1丁目2番20号", "tel": "090-2812-0947"}, {"no": "400865", "name": "湊 篤史", "addr": "旭川市神楽六条１３丁目3番5号", "tel": "080-2035-3548"}, {"no": "400866", "name": "大井 隆治・千晶", "addr": "上富良野町本町3丁目6番26号", "tel": "070-8593-4650"}, {"no": "400867", "name": "若山 拓也", "addr": "旭川市豊岡5条8丁目4番6号", "tel": "070-6409-4396"}, {"no": "400868", "name": "杉森 哲人", "addr": "旭川市神楽岡10条4丁目1番16号", "tel": "090-1383-4827"}, {"no": "400869", "name": "松井 竜太", "addr": "旭川市永山12条2丁目8番16号", "tel": "090-7519-7969"}, {"no": "400870", "name": "森武 佑太", "addr": "上川郡剣淵町屯田町385番地2", "tel": "090-6694-0279"}, {"no": "400871", "name": "吉原 栄佑", "addr": "旭川市神楽7条12丁目8番8号", "tel": "090-6266-1879"}, {"no": "400872", "name": "神山 直也", "addr": "旭川市西神楽北１条３丁目231番地の117", "tel": "090-1380-4511"}, {"no": "400873", "name": "鈴木 郁子", "addr": "旭川市神楽岡１2条6丁目1番13号", "tel": "090-9753-4631"}, {"no": "400874", "name": "田中 歩", "addr": "砂川市吉野1条南5丁目36番地85", "tel": "090-1644-8484"}, {"no": "400875", "name": "眞岩 巧", "addr": "旭川市豊岡12条8丁目", "tel": "090-1308-7736"}, {"no": "400876", "name": "岩月 太郎・琴美", "addr": "旭川市神楽岡11条9丁目1番7号", "tel": "090-8707-0921"}, {"no": "400877", "name": "小林 豊・里美", "addr": "旭川市神居6条9丁目1番15号", "tel": "090-9527-1680"}, {"no": "400878", "name": "河野 琢磨", "addr": "旭川市豊岡12条8丁目1番7号", "tel": "090-2054-5304"}, {"no": "400879", "name": "石澤 司・千裕", "addr": "旭川市東光4条5丁目2番7号", "tel": "080-4509-0520"}, {"no": "400880", "name": "小玉 晃久", "addr": "旭川市神楽岡15条3丁目1番17-2号", "tel": "090-1381-1406"}, {"no": "400881", "name": "山本 和弘", "addr": "士別市多寄町39線西19番地", "tel": "090-1381-1406"}, {"no": "400882", "name": "石崎 隆太・睦美", "addr": "旭川市永山5条14丁目2番7号", "tel": "090-9432-1203"}, {"no": "400883", "name": "越智 亮平", "addr": "旭川市末広2条14丁目2番4号", "tel": "050-5582-9795"}, {"no": "400884", "name": "山﨑 仁史・さゆり", "addr": "旭川市永山4条22丁目3番20号", "tel": "080-1654-6866"}, {"no": "400885", "name": "堅田 和宏", "addr": "深川市新光町1丁目4番29号", "tel": "090-3775-5372"}, {"no": "400886", "name": "岡崎 靖子", "addr": "旭川市大雪通8丁目505番地の23", "tel": "090-1528-8025"}, {"no": "400887", "name": "宮脇 翔吾", "addr": "旭川市永山1条22丁目４番５－２号", "tel": "080-5726-8587"}, {"no": "400888", "name": "石黒 宏美", "addr": "旭川市東鷹栖東1条2丁目269-14", "tel": "080-1897-6503"}, {"no": "400889", "name": "（株）ナカムラ", "addr": "旭川市末広4条4丁目", "tel": ""}, {"no": "400890", "name": "𠮷成 慎太郎", "addr": "雨竜郡幌加内町字政和第3", "tel": "090-8370-3396"}, {"no": "400891", "name": "髙瀨 和哉・佳奈子", "addr": "旭川市豊岡２条２丁目６番１８－２号", "tel": "090-6691-3384"}, {"no": "400892", "name": "齋藤 隆幸・真由", "addr": "旭川市末広1条10丁目２番２２号", "tel": "080-6093-5710"}, {"no": "400893", "name": "多田 力哉", "addr": "名寄市字徳田109番地6", "tel": "090-7058-8925"}, {"no": "400894", "name": "森田 新司・陽子", "addr": "旭川市豊岡9条2丁目2番8号", "tel": "090-3777-2366"}, {"no": "400895", "name": "福澤 征爾", "addr": "旭川市南6条通25丁目20番地の203", "tel": "090-3893-2267"}, {"no": "400896", "name": "加藤 匡章", "addr": "旭川市豊岡7条７丁目4番10号", "tel": "090-5076-4887"}, {"no": "400897", "name": "安齊 勇志・有理", "addr": "旭川市大町1条1丁目30番地の91", "tel": "090-2055-1056"}, {"no": "400898", "name": "小林 勇人", "addr": "旭川市春光台4条3丁目8番7号", "tel": "080-4503-0180"}, {"no": "400899", "name": "宮崎 遼平・真南未", "addr": "旭川市神居7条12丁目1番12号", "tel": "090-5953-5936"}, {"no": "400900", "name": "佐藤 数万・希美", "addr": "旭川市大町2条17丁目576番地の32", "tel": "080-6073-3688"}, {"no": "400901", "name": "榎 孝文", "addr": "宗谷郡猿払村浅茅野台地2674-11", "tel": "090-1678-4047"}, {"no": "400902", "name": "阿部 将太朗", "addr": "空知郡上富良野町南町2丁目1054番地309", "tel": "080-1862-6127"}, {"no": "400903", "name": "古田 英成", "addr": "旭川市川端町2条5丁目1番1号", "tel": "090-9522-9666"}, {"no": "400904", "name": "斉藤 秀斗", "addr": "旭川市神楽6条13丁目3番4号", "tel": "090-5984-6950"}, {"no": "400905", "name": "竹田 真也", "addr": "旭川市神楽岡8条4丁目3番12号", "tel": "090-7651-6755"}, {"no": "400906", "name": "石井 大介", "addr": "旭川市神楽岡1条7丁目1番3号", "tel": "090-9101-1584"}, {"no": "400907", "name": "斉藤 季幸・結衣", "addr": "赤平市若木町東3丁目2番地6", "tel": "080-5598-9138"}, {"no": "400908", "name": "大石 秀人・梓", "addr": "旭川市末広1条10丁目2番24号", "tel": "080-1878-7573"}, {"no": "400909", "name": "長部 広太", "addr": "上川郡美瑛町字美瑛原野4線", "tel": "090-9083-7794"}, {"no": "400910", "name": "小林 寛明", "addr": "旭川市東光10条8丁目3番22号", "tel": "090-5987-1501"}, {"no": "400911", "name": "山田 哉", "addr": "上川郡東川町南町1丁目13番9号", "tel": "090-4877-9220"}, {"no": "400912", "name": "佐藤 幹大・麻友子", "addr": "旭川市緑が丘南1条1丁目5番14号", "tel": "080-4502-1989"}, {"no": "400913", "name": "曽我 和文", "addr": "旭川市川端町4条10丁目2番2号", "tel": "090-7514-8800"}, {"no": "400914", "name": "小西 裕人", "addr": "旭川市春光5条9丁目7番4号", "tel": "090-7050-4892"}, {"no": "400915", "name": "堀江 裕太", "addr": "富良野市西町1番29号", "tel": "090-8632-4291"}, {"no": "400916", "name": "徳本 眞光", "addr": "旭川市東光11条6丁目４番10号", "tel": "090-7515-1961"}, {"no": "400917", "name": "内田 雅博", "addr": "旭川市西神楽北1条3丁目231番地の114", "tel": "080-5597-8262"}, {"no": "400918", "name": "内海 辰哉", "addr": "富良野市幸町1番32号", "tel": "090-6995-7971"}, {"no": "400919", "name": "諸岡 佑治", "addr": "旭川市大町2条16丁目577-269", "tel": "090-2878-4160"}, {"no": "400920", "name": "天内 大希・郁", "addr": "旭川市東光9条1丁目5番10号", "tel": "090-3775-4771"}, {"no": "400921", "name": "澤田 梨知", "addr": "上川郡愛別町字北町330番地34", "tel": "090-4872-8368"}, {"no": "400922", "name": "古林 三祉翔・結衣", "addr": "上川郡東川町西町9丁目6番11号", "tel": "090-6261-0575"}, {"no": "400923", "name": "濱田 一成", "addr": "上川郡美瑛町字俵真布第1", "tel": "090-2692-3400"}, {"no": "400924", "name": "前川 文孝", "addr": "旭川市末広東2条4丁目7番8号", "tel": "090-9752-8457"}, {"no": "400925", "name": "上田 雅則", "addr": "旭川市神楽6条7丁目4番1号", "tel": "090-8276-9942"}, {"no": "400926", "name": "齊藤 亮", "addr": "旭川市永山7条12丁目2番19号", "tel": "080-6093-8787"}, {"no": "400927", "name": "斉藤 一成", "addr": "旭川市東旭川南2条2丁目1番5号", "tel": "090-2058-6365"}, {"no": "400928", "name": "相馬 有喜", "addr": "旭川市末広2条9丁目1番12-3号", "tel": "090-7057-4150"}, {"no": "400929", "name": "吉野 克哉", "addr": "旭川市末広東3条5丁目2番14号", "tel": "090-1643-8029"}, {"no": "400930", "name": "末次 浩二郎", "addr": "旭川市東光13条9丁目1番5号", "tel": "080-3293-5819"}, {"no": "400931", "name": "中山 雄貴", "addr": "旭川市東光4条9丁目2番10号", "tel": "090-3898-7101"}, {"no": "400932", "name": "廣野 裕介", "addr": "旭川市曙3条5丁目1番17号", "tel": "080-1871-6482"}, {"no": "400933", "name": "渋谷 信行・郁美", "addr": "旭川市神居8条2丁目2番2号", "tel": "080-1860-3860"}, {"no": "400934", "name": "工藤 一真・麻菜香", "addr": "旭川市神楽2条10丁目6番18号", "tel": "080-1899-9730"}, {"no": "400935", "name": "野口 祐輔", "addr": "旭川市3条通12丁目456番地の1", "tel": "090-2558-3315"}, {"no": "400936", "name": "千葉 裕貴", "addr": "旭川市川端町3条7丁目1番6号", "tel": "090-5958-6161"}, {"no": "400937", "name": "大井 清二", "addr": "深川市北光町1丁目2番14号", "tel": "090-5222-2471"}, {"no": "400938", "name": "橋立 宜裕", "addr": "空知郡中富良野町字中富良野伊藤農場", "tel": "090-1381-3364"}, {"no": "400939", "name": "小川 翼", "addr": "旭川市高砂台7丁目13番5号", "tel": "090-2074-1876"}, {"no": "400940", "name": "加藤 裕斗", "addr": "旭川市川端町4条10丁目2番1号", "tel": "090-6999-4841"}, {"no": "400941", "name": "北島 良和", "addr": "士別市武徳町44線東9号7589番地6", "tel": "090-5222-0781"}, {"no": "400942", "name": "佐藤 賢哉", "addr": "旭川市東光9条1丁目5番9号", "tel": "080-6070-6924"}, {"no": "400943", "name": "横澤 拓也・優香", "addr": "旭川市北門町16丁目2158番地の16", "tel": "090-3899-5146"}, {"no": "400944", "name": "福永 紳・由香", "addr": "上川郡東川町西町2丁目6番7号", "tel": "090-2877-2363"}, {"no": "400945", "name": "惣万 弘章・奈津実", "addr": "上川郡美瑛町憩町1丁目4番17号", "tel": "090-9518-0756"}, {"no": "400946", "name": "西原 拓也・莉奈", "addr": "深川市7条20番22号", "tel": "080-1860-6175"}, {"no": "400947", "name": "村椿 浩康", "addr": "東神楽町南1条西1丁目5番16号", "tel": "090-9521-7156"}, {"no": "400948", "name": "袋 怜史", "addr": "旭川市大町1条11丁目97番地の148", "tel": "090-2690-3104"}, {"no": "400949", "name": "佐藤 絢", "addr": "名寄市西6条南10丁目2番地116", "tel": "090-8370-1866"}, {"no": "400950", "name": "相馬 一翔・百恵", "addr": "旭川市東鷹栖1条4丁目638番地の236", "tel": "080-6062-5942"}, {"no": "400951", "name": "塩﨑 智大", "addr": "旭川市永山8条7丁目4番14号", "tel": "090-6878-3205"}, {"no": "400952", "name": "大長 昴", "addr": "旭川市神居7条14丁目2番5号", "tel": "080-6060-8722"}, {"no": "400953", "name": "今野 裕太", "addr": "上川郡東川町南町１丁目11番9号", "tel": "090-5987-2864"}, {"no": "400954", "name": "浦木 勇希・早紀", "addr": "旭川市東光9条1丁目5番8号", "tel": "080-60806391"}, {"no": "400955", "name": "松嶋 孝明", "addr": "旭川市旭町1条21丁目2173番地の112", "tel": "080-1885-9786"}, {"no": "400956", "name": "下保 裕樹", "addr": "雨竜郡沼田町南1条7丁目6番59号", "tel": "090-2054-1069"}, {"no": "400957", "name": "奥村 優太・穂乃香", "addr": "旭川市錦町14丁目2952番地の33", "tel": "080-6091-1935"}, {"no": "400958", "name": "斎藤 千春", "addr": "士別市東6条北7丁目9番地", "tel": "0165-22-2114"}, {"no": "400959", "name": "川原 聡", "addr": "雨竜郡妹背牛町字妹背牛6666番地", "tel": "0164-32-4004"}, {"no": "400960", "name": "水口 香奈", "addr": "旭川市東光9条1丁目5番7－2号", "tel": "090-6260-3305"}, {"no": "400961", "name": "北川 雅樹", "addr": "上川郡比布町緑町1丁目3番24号", "tel": "090-9520-5787"}, {"no": "400962", "name": "土田 圭一・美知江", "addr": "旭川市末広2条7丁目2番30号", "tel": "090-2692-3058"}, {"no": "400963", "name": "佐藤 達也", "addr": "士別市東1条14丁目3144番地26", "tel": "090-5225-0745"}, {"no": "400964", "name": "澤田 陽気", "addr": "旭川市末広2条11丁目4番18号", "tel": "090-7512-9692"}, {"no": "400965", "name": "澁谷 和孝・夕布子", "addr": "旭川市11条通20丁目2番地の22", "tel": "090-6267-5866"}, {"no": "400966", "name": "松田 祐司・裕美", "addr": "士別市西1条2丁目1919番地3", "tel": "090-3773-4349"}, {"no": "400967", "name": "髙野 雄太", "addr": "旭川市西御料3条3丁目2番37号", "tel": "090-2817-8477"}, {"no": "400968", "name": "初田 吉昭", "addr": "旭川市忠和6条5丁目1番5号", "tel": "090-2050-7342"}, {"no": "400969", "name": "平松 聖也・華代", "addr": "旭川市東旭川北2条5丁目3番31号", "tel": "080-3239-5886"}, {"no": "400970", "name": "長田 晃範", "addr": "旭川市神居4条16丁目3番21号", "tel": "080-3456-4254"}, {"no": "400971", "name": "青柳 翔・加奈", "addr": "旭川市9条通16丁目24番地の236", "tel": "090-7513-8853"}, {"no": "400972", "name": "牧野 大", "addr": "旭川市東光4条9丁目2番9号", "tel": "090-2817-6462"}, {"no": "400973", "name": "佐藤 聖都・千里", "addr": "旭川市末広東3条5丁目2番15号", "tel": "090-5952-2321"}, {"no": "400974", "name": "浜口 健介", "addr": "旭川市末広4条6丁目8番14号", "tel": "0166-51-9345"}, {"no": "400975", "name": "尾崎 雄哉", "addr": "美瑛町大町1丁目24番5号", "tel": "090-9759-0441"}, {"no": "400976", "name": "延藤 優太", "addr": "旭川市東光4条9丁目2番12号", "tel": "080-5586-3704"}, {"no": "400977", "name": "欠番", "addr": "", "tel": ""}, {"no": "400978", "name": "前田 俊哉・有希", "addr": "雨竜郡妹背牛町字妹背牛252番地の101", "tel": "090-2058-7819"}, {"no": "400979", "name": "成瀬 誠司", "addr": "旭川市永山6条7丁目3番14-2号", "tel": "090-1385-6666"}, {"no": "400980", "name": "南 隼平", "addr": "旭川市6条西6丁目1番2号", "tel": "080-6092-8512"}, {"no": "400981", "name": "上田 哲弘", "addr": "旭川市永山9条1丁目2番7号", "tel": "090-6693-8402"}, {"no": "400982", "name": "垣田 翔馬", "addr": "旭川市神居7条11丁目1番6号", "tel": "090-7516-3085"}, {"no": "400983", "name": "工藤 佳毅", "addr": "旭川市末広東2条4丁目10番8-2号", "tel": "090-8632-0734"}, {"no": "400984", "name": "山岡 凌太郎・友理", "addr": "雨竜郡沼田町南1条3丁目8番29号", "tel": "080-5591-9235"}, {"no": "400985", "name": "杉野 裕弥", "addr": "旭川市西御料3条3丁目2番35号", "tel": "080-6099-6452"}, {"no": "400986", "name": "村上 慶亮・里和", "addr": "旭川市緑が丘5条1丁目1番地の28", "tel": "090-5986-9234"}, {"no": "400987", "name": "福村 光貴", "addr": "旭川市忠和2条4丁目2番20号", "tel": "080-6065-9758"}, {"no": "400988", "name": "田岡 龍太朗・未央", "addr": "旭川市神居8条17丁目1番3号", "tel": "090-3897-3692"}, {"no": "400989", "name": "大谷 優斗・七聖", "addr": "砂川市吉野1条南6丁目3番12号", "tel": "090-9439-0039"}, {"no": "400990", "name": "上野 紘輔", "addr": "旭川市末広2条11丁目4番25号", "tel": "090-9759-2773"}, {"no": "400991", "name": "小林 真由美", "addr": "旭川市旭岡2丁目5番地の1", "tel": "090-7657-0004"}, {"no": "400992", "name": "藤井 美和", "addr": "旭川市末広東3条5丁目2番9号", "tel": "090-1547-3273"}, {"no": "400993", "name": "黒川 憲路", "addr": "上川郡鷹栖町北野西4条1丁目2番4号", "tel": "090-9080-7704"}, {"no": "400994", "name": "那須 健太郎・のぞみ", "addr": "上川郡比布町新町1丁目6番5号", "tel": "080-5595-1347"}, {"no": "400995", "name": "飯豊 千春", "addr": "富良野市住吉町3番46号", "tel": "090-5225-2401"}, {"no": "400996", "name": "濱田 準", "addr": "滝川市空知町1丁目6番25号", "tel": "090-8428-1101"}, {"no": "400997", "name": "𠮷田 健二", "addr": "名寄市西8条南11丁目55番地45", "tel": "090-1647-7200"}, {"no": "400998", "name": "村田 友哉", "addr": "旭川市東7条2丁目4番5-2号", "tel": "090-6993-9827"}, {"no": "400999", "name": "中川 元気", "addr": "旭川市西神楽南1条3丁目248番地の3", "tel": "080-1881-3955"}, {"no": "401000", "name": "市川 信也", "addr": "旭川市東光1条6丁目4番33号", "tel": "090-7052-9149"}, {"no": "401001", "name": "松浦 成兆", "addr": "深川市3条19番11号", "tel": "090-8273-8793"}, {"no": "401002", "name": "高橋 大樹・妃果莉", "addr": "旭川市豊岡13条6丁目1番1号", "tel": "090-7519-6462"}, {"no": "401003", "name": "春田 大介", "addr": "深川市西町15番10号", "tel": "090-6269-0701"}, {"no": "401004", "name": "谷口 孝之", "addr": "旭川市南6条通18丁目1番8号", "tel": "090-8278-5644"}, {"no": "401005", "name": "櫻庭 真一・桃子", "addr": "浜頓別町北4条5丁目1番地2", "tel": "090-2074-3922"}, {"no": "401006", "name": "金間 詩穂", "addr": "旭川市末広5条11丁目4番13号", "tel": "080-3262-5526"}, {"no": "401007", "name": "村上 孝博", "addr": "士別市多寄町2165番地57", "tel": "090-6873-2054"}, {"no": "401008", "name": "定岡 弘哲", "addr": "旭川市末広2条14丁目5番12号", "tel": "090-6697-8172"}, {"no": "401009", "name": "吉村 駿吾", "addr": "旭川市永山9条3丁目3番12号", "tel": "080-1862-7210"}, {"no": "401010", "name": "阿部 賢司", "addr": "旭川市春光台5条3丁目3番17号", "tel": "090-6998-4704"}, {"no": "401011", "name": "佐々木 龍之慎", "addr": "旭川市豊岡2条8丁目3番12-2号", "tel": "080-5594-3131"}, {"no": "401012", "name": "金野 裕二郎", "addr": "旭川市春光台4条3丁目8番8号", "tel": "090-3115-9758"}, {"no": "401013", "name": "成田 学", "addr": "旭川市大町2条16丁目577番地の112", "tel": "090-6695-8556"}, {"no": "401014", "name": "佐久間 健一", "addr": "美瑛町西町1丁目6番15号", "tel": "090-9756-5606"}, {"no": "401015", "name": "井出 雄也・未奈美", "addr": "旭川市豊岡5条7丁目3番11号", "tel": "080-5597-8431"}, {"no": "401016", "name": "小川 東瑋", "addr": "旭川市忠和7条5丁目7番20号", "tel": "080-6077-4880"}, {"no": "401017", "name": "妻木 新", "addr": "旭川市末広4条5丁目2番9号", "tel": "090-1527-9638"}, {"no": "401018", "name": "廣瀬 智基", "addr": "旭川市東旭川南1条4丁目6番33号", "tel": "090-4876-5858"}, {"no": "401019", "name": "中家 良太", "addr": "美瑛町西町1丁目6番9号", "tel": "090-9520-9529"}, {"no": "401020", "name": "山本 充宏", "addr": "旭川市神居1条6丁目4番14-2号", "tel": "090-7058-7992"}, {"no": "401021", "name": "谷口 結衣", "addr": "旭川市秋月3条2丁目3番8号", "tel": "090-4871-4031"}, {"no": "401022", "name": "岩倉 正行", "addr": "旭川市春光4条8丁目6-7", "tel": "090-6693-3513"}, {"no": "401023", "name": "伊藤 政成", "addr": "苫前郡苫前町字旭38番地の1", "tel": "090-5078-0460"}, {"no": "401024", "name": "川越 健人", "addr": "旭川市東光2条10丁目3番5号", "tel": "080-6070-1797"}, {"no": "401025", "name": "髙野池 篤", "addr": "旭川市豊岡6条5丁目1番14号", "tel": "090-1384-9316"}, {"no": "401026", "name": "安部 大輔・亜紀子", "addr": "芦別市北4条西3丁目1番地の5", "tel": "090-5225-4183"}, {"no": "401027", "name": "西森 兄裕", "addr": "旭川市春光3条9丁目7番18号", "tel": "090-7657-9250"}, {"no": "401028", "name": "大森 基成", "addr": "旭川市春光台1条3丁目8番24号", "tel": "090-9753-8335"}, {"no": "401029", "name": "三澤 さゆり", "addr": "枝幸郡枝幸町音標4番地31", "tel": "0163-66-1023"}, {"no": "401030", "name": "古谷 一樹", "addr": "中富良野町新町14番10号", "tel": "080-3291-0813"}, {"no": "401031", "name": "渡辺 竜也", "addr": "深川市音江町字豊泉129番地11", "tel": "080-5589-6207"}, {"no": "401032", "name": "冨田 章裕・さやか", "addr": "旭川市神居4条3丁目1番5号", "tel": "090-5980-8551"}, {"no": "401033", "name": "永野 哲也", "addr": "深川市文光町21番22号", "tel": "080-5586-1333"}, {"no": "401034", "name": "尾崎 尚之", "addr": "旭川市豊岡6条10丁目4番16-2号", "tel": "080-5724-8521"}, {"no": "401035", "name": "古家 聖丈・佑香", "addr": "旭川市永山8条6丁目3番19号", "tel": "080-5598-4531"}, {"no": "401036", "name": "髙山 勝行", "addr": "名寄市東2条南4丁目19番地1", "tel": "090-1522-7986"}, {"no": "401037", "name": "石井 勇次", "addr": "旭川市春光3条9丁目7番15号", "tel": "090-7797-9884"}, {"no": "401038", "name": "小原 啓", "addr": "旭川市東光9条1丁目5番22号", "tel": "0166-31-2085"}, {"no": "401039", "name": "濱田 光洋・絵理", "addr": "旭川市永山8条6丁目3番2号", "tel": "090-4878-6696"}, {"no": "401040", "name": "岡田 聡", "addr": "深川市1条20番23号", "tel": "090-6267-1087"}, {"no": "401041", "name": "谷口 貴洋", "addr": "旭川市春光台3条7丁目1番地の3", "tel": "090-3777-8106"}, {"no": "401042", "name": "浅野 良樹・晴華", "addr": "旭川市東光5条8丁目4番14号", "tel": "090-7640-4341"}, {"no": "401043", "name": "高橋 恭輔", "addr": "旭川市川端町4条6丁目4番6号", "tel": "090-6877-0485"}, {"no": "401044", "name": "袴田 賢一", "addr": "名寄市徳田102番地6", "tel": "090-8904-4050"}, {"no": "401045", "name": "林 克明・友香", "addr": "旭川市永山7条10丁目9番6号", "tel": "080-5580-1415"}, {"no": "401046", "name": "永松 類・このみ", "addr": "旭川市北門町19丁目2154番地の17", "tel": "080-5831-5811"}, {"no": "401047", "name": "永川 大樹・順菜", "addr": "旭川市永山5条3丁目1番2号", "tel": "090-7647-0614"}, {"no": "401048", "name": "間丈 徳昭", "addr": "旭川市豊岡5条2丁目7番6号", "tel": "090-2279-9553"}, {"no": "401049", "name": "當野 晃平・加奈", "addr": "深川市2条20番12号", "tel": "080-6095-4404"}, {"no": "401050", "name": "佐藤 将吾", "addr": "滝川市東町6丁目7番12号", "tel": "090-8274-1263"}, {"no": "401051", "name": "二階堂 巧丞", "addr": "上川郡鷹栖町南1条6丁目4番1号", "tel": "090-8271-6923"}, {"no": "401052", "name": "赤間 史章・由佳理", "addr": "旭川市神楽岡10条5丁目1番23号", "tel": "090-6448-0564"}, {"no": "401053", "name": "曽我 祐平・遥", "addr": "旭川市東光5条8丁目4番14-2号", "tel": "080-5592-1989"}, {"no": "401054", "name": "佐藤 将志", "addr": "旭川市緑が丘南3条2丁目２番15-2号", "tel": "090-6214-3720"}, {"no": "401055", "name": "近藤 悠斗・未沙登", "addr": "旭川市永山6条8丁目2番18号", "tel": "080-3236-0441"}, {"no": "401056", "name": "佐藤 圭佑", "addr": "旭川市末広6条4丁目9番11号", "tel": "080-7277-8879"}, {"no": "401057", "name": "四宮 広樹", "addr": "富良野市東町9番2号", "tel": "090-3891-0016"}, {"no": "401058", "name": "藤澤  竜樹・綾華", "addr": "旭川市東7条1丁目2番4号", "tel": "090-8633-2180"}, {"no": "401059", "name": "仁科 拓也", "addr": "旭川市春光台1条5丁目2番19-2号", "tel": "090-5073-8822"}, {"no": "401060", "name": "奥田 健志", "addr": "旭川市春光台3条4丁目11番15号", "tel": "090-2694-6671"}, {"no": "401061", "name": "大橋 利季・美沙", "addr": "士別市東8条北1丁目81番地33", "tel": "080-1976-3804"}, {"no": "401062", "name": "水嶋 慎吾", "addr": "旭川市東光16条4丁目1番6号", "tel": "090-2695-8374"}, {"no": "401063", "name": "田代 拓也", "addr": "旭川市永山2条20丁目3番13号", "tel": "090-7516-2970"}, {"no": "401064", "name": "三野 裕之", "addr": "旭川市豊岡5条7丁目3番9号", "tel": "090-9434-5910"}, {"no": "401065", "name": "白橋 一世", "addr": "上川郡鷹栖町北野西3条1丁目1番15号", "tel": "090-6877-1601"}, {"no": "401066", "name": "石成 雅也・愛美", "addr": "旭川市末広6条5丁目5番3-2号", "tel": "090-6449-4643"}, {"no": "401067", "name": "岡田 柊成・千晶", "addr": "旭川市10条通20丁目1番地の14", "tel": "090-6991-1164"}, {"no": "401068", "name": "信田 勇気・桃果", "addr": "空知郡上富良野町本町4丁目4番16号", "tel": "090-7518-4792"}, {"no": "401069", "name": "菅 章貴", "addr": "上川郡美瑛町幸町1丁目5番11号", "tel": "090-6993-5545"}, {"no": "401070", "name": "北﨑 悌綱・裕希", "addr": "旭川市豊岡4条11丁目1番27号", "tel": "080-1872-6793"}, {"no": "401071", "name": "松崎 耕太", "addr": "名寄市西8条南3丁目33番地", "tel": "090-2814-0760"}, {"no": "401072", "name": "池田 純子", "addr": "旭川市西神楽北2条1丁目133番地の100", "tel": "090-1647-3474"}, {"no": "401073", "name": "中村 祐希・加奈", "addr": "旭川市東鷹栖4条3丁目636番地の197", "tel": "080-1973-3299"}, {"no": "401074", "name": "阿部 翔冴・彩華", "addr": "旭川市東旭川北1条7丁目9番15号", "tel": "090-6211-9046"}, {"no": "401075", "name": "堀井 拓弥・香澄", "addr": "東光15条3丁目1番13号", "tel": "080-6094-4546"}, {"no": "401076", "name": "村上 糧・郁恵", "addr": "留萌市沖見町4丁目63番地の9", "tel": "090-2053-4436"}, {"no": "401077", "name": "吉本 優希", "addr": "旭川市豊岡7条2丁目3番7-2号", "tel": "090-9436-9430"}, {"no": "401078", "name": "谷山 司茂", "addr": "旭川市神楽岡8条1丁目1番34号", "tel": "090-5985-2162"}, {"no": "401079", "name": "山賀 竜太", "addr": "旭川市神楽岡11条1丁目1番1号", "tel": "090-2073-1353"}, {"no": "401080", "name": "太田 俊哉", "addr": "苫前郡苫前町字古丹別174番地の10", "tel": "090-5980-9687"}, {"no": "401081", "name": "貝津 誠", "addr": "旭川市豊岡2条9丁目2番16号", "tel": "090-5955-6898"}, {"no": "401082", "name": "竹林 智哉", "addr": "旭川市東光4条4丁目1番30号", "tel": "090-6215-8879"}, {"no": "401083", "name": "小野 敏寛", "addr": "富良野市西鳥沼2", "tel": "090-6263-5331"}, {"no": "401084", "name": "大場 健士朗", "addr": "旭川市神楽岡7条7丁目1番9号", "tel": "080-4003-2913"}, {"no": "401085", "name": "松本 悠・楓花", "addr": "旭川市神楽7条12丁目8番11号", "tel": "080-1888-5189"}, {"no": "401086", "name": "宮崎 敬太", "addr": "南富良野町字幾寅789番地", "tel": "090-9433-4557"}, {"no": "401087", "name": "稲場 博之・奈緒美", "addr": "旭川市曙1条5丁目2番14-2号", "tel": "090-8709-9038"}, {"no": "401088", "name": "齋藤 諒", "addr": "旭川市7条西2丁目2番11号", "tel": "080-6051-6864"}, {"no": "401089", "name": "早坂 典晃", "addr": "名寄市西7条南3丁目17番地", "tel": "080-3260-6630"}, {"no": "401090", "name": "長谷川 遼・夏美", "addr": "当麻町6条東3丁目2番38号", "tel": "080-6066-9807"}, {"no": "401091", "name": "寺田 泰輝・綾奈", "addr": "上富良野町本町1丁目4番9号", "tel": "090-1524-0151"}, {"no": "401092", "name": "浪岡 凌・叶実", "addr": "上川郡当麻町3条東3丁目19番3号", "tel": "090-9435-8359"}, {"no": "401093", "name": "石坂 公二", "addr": "滝川市東滝川町4丁目6番2号", "tel": "090-9753-8041"}, {"no": "401094", "name": "菅 俊", "addr": "深川市音江町1丁目10-37", "tel": "090-9513-6169"}, {"no": "401095", "name": "須貝 僚太", "addr": "旭川市東旭川北2条6丁目5番5号", "tel": "080-6099-3444"}, {"no": "401096", "name": "大川 恭平", "addr": "上川郡和寒町字北町61番13", "tel": "090-7517-2459"}, {"no": "401097", "name": "葛󠄀西 太郎", "addr": "旭川市大町1条3丁目9番地の59", "tel": "090-9752-7354"}, {"no": "401098", "name": "松田 悠揮・彩香", "addr": "当麻町3条東3丁目19番1号", "tel": "090-6218-4581"}, {"no": "401099", "name": "大島 両平", "addr": "旭川市忠和6条5丁目8番23-2号", "tel": "090-7514-4858"}, {"no": "401100", "name": "北嶋 健人", "addr": "旭川市神居2条3丁目1番5号", "tel": "090-8374-1419"}, {"no": "401101", "name": "矢萩 圭太・友絵", "addr": "旭川市末広1条2丁目6番26号", "tel": "090-5954-8209"}, {"no": "401102", "name": "谷本 祐二・美那", "addr": "深川市3条24番30号", "tel": "080-6093-5217"}, {"no": "401103", "name": "寒藤 峻介", "addr": "富良野市山部東町6番57号", "tel": "080-3230-2065"}, {"no": "401104", "name": "相馬 宏顕", "addr": "旭川市春光7条6丁目9番12号", "tel": "090-7643-2183"}, {"no": "401105", "name": "稲垣 宏規・里奈", "addr": "旭川市豊岡15条4丁目6番16号", "tel": "080-4506-3834"}, {"no": "401106", "name": "宮川 大輝", "addr": "岩見沢市1条東16丁目27番地", "tel": "080-1877-8090"}, {"no": "401107", "name": "行本 達也", "addr": "旭川市春光5条8丁目16番24号", "tel": "090-2698-2324"}, {"no": "401108", "name": "神 阿楠・結奈", "addr": "旭川市東鷹栖1条4丁目638番地の285", "tel": "080-5724-2547"}, {"no": "401109", "name": "三村 仁", "addr": "旭川市神楽岡2条7丁目3番2号", "tel": "080-3268-6553"}, {"no": "401110", "name": "堺 洋平・友菜", "addr": "旭川市川端町2条5丁目2番27号", "tel": "080-6074-0623"}, {"no": "401111", "name": "高島 直樹", "addr": "旭川市神楽岡8条1丁目1番35号", "tel": "090-3394-8307"}, {"no": "401112", "name": "杉山 雄哉", "addr": "旭川市神居2条3丁目1番4号", "tel": "080-6060-6006"}, {"no": "401113", "name": "平野 貴之", "addr": "旭川市神楽岡1条5丁目6番6号", "tel": "080-6099-4038"}, {"no": "401114", "name": "植木 亮司", "addr": "旭川市新富1条2丁目5番20号", "tel": "090-3118-8731"}, {"no": "401115", "name": "沢田 佑輔・梨奈", "addr": "旭川市新富1条2丁目5番19-2号", "tel": "090-8630-7358"}, {"no": "401116", "name": "茶木 拓治", "addr": "旭川市南7条通25丁目20番地の223", "tel": "090-8270-1777"}, {"no": "401117", "name": "池田 良太", "addr": "旭川市旭町1条9丁目2635番地の4", "tel": "080-6064-3839"}, {"no": "401118", "name": "今野 康典", "addr": "旭川市旭町1条11丁目689番地の114", "tel": "090-8637-7247"}, {"no": "401119", "name": "竹内 浩之", "addr": "滝川市朝日町東1丁目13番9号", "tel": "090-3892-7294"}, {"no": "401120", "name": "笠羽 隼聡・歩美", "addr": "旭川市豊岡2条3丁目2番7号", "tel": "080-1884-0190"}, {"no": "401121", "name": "浅利 涼子", "addr": "上川郡東川町東2号北19番地", "tel": "090-6321-6915"}, {"no": "401122", "name": "鈴木 武虎・彩奈", "addr": "旭川市秋月3条2丁目2番5号", "tel": "080-5593-0585"}, {"no": "401123", "name": "佐藤 尚貴・望実", "addr": "名寄市西8条南3丁目24番地", "tel": "090-5077-9473"}, {"no": "401124", "name": "右田 恭兵・彩香", "addr": "旭川市神居5条9丁目3番16号", "tel": "080-6081-4208"}, {"no": "401125", "name": "真田 光翼・玲奈", "addr": "深川市西町15番11号", "tel": "090-4871-6530"}, {"no": "401126", "name": "大波 知明・厚子", "addr": "美瑛町花園2丁目2番14号", "tel": "080-6092-4887"}, {"no": "401127", "name": "山田 祥之", "addr": "深川市北光町1丁目8番18号", "tel": "090-6211-5748"}, {"no": "401128", "name": "村上 海・亜由未", "addr": "旭川市南4条通24丁目10番地の124", "tel": "090-3779-5030"}, {"no": "401129", "name": "荒川 圭介・亜希", "addr": "美瑛町字旭第3", "tel": "080-1898-7121"}, {"no": "401130", "name": "林 宏樹", "addr": "旭川市豊岡8条3丁目5番１号", "tel": "080-5468-4078"}, {"no": "401131", "name": "小島 大地", "addr": "旭川市東光15条6丁目4番3号", "tel": "090-6698-4239"}, {"no": "401132", "name": "本田 裕崇", "addr": "滝川市朝日町東1丁目13番10号", "tel": "080-1884-0052"}, {"no": "401133", "name": "三好 涼介", "addr": "名寄市西8条南3丁目32番地", "tel": "090-6995-0612"}, {"no": "401134", "name": "佐藤 由香", "addr": "旭川市末広2条6丁目4番17号", "tel": "0166-51-9062"}, {"no": "401135", "name": "欠番", "addr": "", "tel": ""}, {"no": "401136", "name": "以後 勇仁・萌", "addr": "旭川市豊岡2条3丁目2番8号", "tel": "090-5957-3367"}, {"no": "401137", "name": "北川 竜生", "addr": "中富良野町北町6番32号", "tel": "080-1865-5710"}, {"no": "401138", "name": "田辺 塁", "addr": "旭川市神居4条2丁目3番8号", "tel": "090-1855-4595"}, {"no": "401139", "name": "濁沼 勇人", "addr": "美瑛町東町3丁目", "tel": "070-7404-4086"}, {"no": "401141", "name": "辻 剛也", "addr": "上富良野町南町3丁目", "tel": "090-6699-1701"}, {"no": "401140", "name": "石山 好一", "addr": "旭川市東旭川町下兵村493番地の2", "tel": "080-5582-1422"}, {"no": "401142", "name": "市川 裕一", "addr": "旭川市秋月3条1丁目8番2-2号", "tel": "090-5950-9210"}, {"no": "401143", "name": "加藤 允・有咲", "addr": "上川郡東川町北町3丁目13番2号", "tel": "090-2052-9270"}, {"no": "401144", "name": "柏木 洋輔", "addr": "深川市深川町字メム8号線山3線5934番地2", "tel": "090-6998-7772"}, {"no": "401145", "name": "佐久山 将", "addr": "旭川市緑が丘2条4丁目10番地の15", "tel": "080-4048-5930"}, {"no": "401146", "name": "齋藤 将吾", "addr": "滝川市花月町2丁目13番2号", "tel": "080-1887-4254"}, {"no": "401147", "name": "松本 率・みのり", "addr": "上川郡東川町北町3丁目15番4号", "tel": "080-4501-3177"}, {"no": "401148", "name": "楠美 嘉和", "addr": "旭川市緑が丘2条4丁目10番地の14", "tel": "090-5235-7989"}, {"no": "401149", "name": "山口 正太", "addr": "旭川市末広1条10丁目2番11号", "tel": "080-6070-7083"}, {"no": "401150", "name": "小畠 功行・沙織", "addr": "旭川市神楽岡8条1丁目1番33号", "tel": "080-6091-7561"}, {"no": "401151", "name": "鎌田 恭兵・なみき", "addr": "芦別市北3条西1丁目15番地の2", "tel": "090-6696-5325"}, {"no": "401152", "name": "櫻岡 壱成・星華", "addr": "旭川市神楽6条13丁目3番12号", "tel": "090-2812-4563"}, {"no": "401153", "name": "村田 汰一・優衣", "addr": "名寄市西5条北3丁目26番地", "tel": "080-6063-0575"}, {"no": "401154", "name": "泉水 宏太・玲子", "addr": "留萌市沖見町3丁目257番地", "tel": "080-1894-6804"}, {"no": "401155", "name": "田嶋 尚之・協子", "addr": "留萌市見晴町2丁目", "tel": "090-6215-2217"}, {"no": "401156", "name": "太田 圭一", "addr": "上川郡東川町北町3丁目13番6号", "tel": "090-5959-1358"}, {"no": "401157", "name": "小寺 颯太", "addr": "砂川市晴見2条北9丁目2番3号", "tel": "090-3396-5556"}, {"no": "401158", "name": "中山 勇気", "addr": "旭川市秋月3条1丁目8番2号", "tel": "090-9751-1590"}, {"no": "401159", "name": "後藤 優太", "addr": "士別市西2条16丁目3141番地585", "tel": "090-3399-6643"}, {"no": "401160", "name": "小久保 和明・佳代", "addr": "旭川市旭町2条5丁目12番地の156", "tel": "090-6444-4600"}, {"no": "401161", "name": "木村 公俊", "addr": "東神楽町字志比内123番地", "tel": "090-3897-0534"}, {"no": "401162", "name": "武蔵 将輔・祐佳", "addr": "旭川市末広4条11丁目2番18号", "tel": "080-6060-9665"}, {"no": "401163", "name": "森脇 圭志", "addr": "深川市文光町", "tel": "080-5586-0335"}, {"no": "401164", "name": "林 卓歩", "addr": "旭川市東光2条2丁目3番16号", "tel": "080-1879-0402"}, {"no": "401165", "name": "庄司 竜也・沙耶", "addr": "士別市西3条3丁目2番4号", "tel": "080-1888-9216"}, {"no": "401166", "name": "松山 千尋・香菜子", "addr": "旭川市神楽2条10丁目6番10号", "tel": "090-9757-8609"}, {"no": "401167", "name": "田中 景子", "addr": "旭川市大町1条9丁目181番地の106", "tel": "090-9759-4817"}, {"no": "401168", "name": "小澤 友祐", "addr": "砂川市東4条南6丁目1番24号", "tel": "080-5596-1744"}, {"no": "401169", "name": "池田 心", "addr": "旭川市亀吉2条2丁目4番20号", "tel": "090-6440-7090"}, {"no": "401170", "name": "清水 哲哉・帆奈美", "addr": "旭川市豊岡13条6丁目1番26号", "tel": "080-6061-6242"}, {"no": "401171", "name": "山原 僚", "addr": "旭川市永山8条18丁目2番7号", "tel": "090-6996-9192"}, {"no": "401172", "name": "村中 豪", "addr": "上川郡東川町北町3丁目15番10号", "tel": "090-7646-1516"}, {"no": "401173", "name": "白川 良弘", "addr": "旭川市春光台4条9丁目10番地の16", "tel": "090-2697-3934"}, {"no": "401174", "name": "石田 悠人", "addr": "旭川市豊岡8条3丁目5番20号", "tel": "090-7654-3646"}, {"no": "401175", "name": "髙橋 春希", "addr": "奈井江町字奈井江755番地5、10", "tel": "090-2057-3415"}, {"no": "401176", "name": "北林 雅之・舞", "addr": "宗谷郡猿払村鬼志別南町301番地4", "tel": "090-9523-6573"}, {"no": "401177", "name": "岸本 知久", "addr": "旭川市東旭川南1条5丁目5番11号", "tel": "090-2053-3482"}, {"no": "401178", "name": "三浦 麻美", "addr": "旭川市永山8条10丁目3番14号", "tel": "080-4508-6556"}, {"no": "401179", "name": "山内 将太・まどか", "addr": "旭川市旭町1条14丁目2146番地の107", "tel": "090-6446-4902"}, {"no": "401180", "name": "石田 亮", "addr": "旭川市旭町1条14丁目", "tel": "090-8898-4859"}, {"no": "401181", "name": "小西 里奈", "addr": "旭川市11条通21丁目2番地の40", "tel": "080-1882-5396"}, {"no": "401182", "name": "佐藤 正志", "addr": "旭川市東光16条9丁目1番16号", "tel": "090-6262-8345"}, {"no": "401183", "name": "石田 隼也・菖", "addr": "旭川市7条通23丁目357番地の63", "tel": "080-6060-0293"}, {"no": "401184", "name": "小森 和優", "addr": "旭川市神楽岡2条5丁目2番10号", "tel": "070-4539-5432"}, {"no": "401185", "name": "山口 司・ななせ", "addr": "旭川市末広東1条5丁目２番２号", "tel": "090-9430-2620"}, {"no": "401186", "name": "小林 翔太・祐奈", "addr": "雨竜郡妹背牛町字妹背牛391番地の6", "tel": "090-6261-7840"}, {"no": "401187", "name": "福井 拓郎", "addr": "上川郡東川町北町3丁目16番25号", "tel": "090-9515-6338"}, {"no": "401188", "name": "塚田 拳", "addr": "雨竜郡沼田町南1条6丁目6番36号", "tel": "080-6061-5414"}, {"no": "401189", "name": "飛田 有紀子", "addr": "旭川市3条西3丁目2番14号", "tel": "090-3085-1100"}, {"no": "401190", "name": "石澤 陸・美緒", "addr": "旭川市永山1条16丁目3番9号", "tel": "080-4508-0396"}, {"no": "401191", "name": "菅原 章義（青田）", "addr": "旭川市9条通21丁目１番地の１", "tel": "090-1886-4484"}, {"no": "401192", "name": "滝沢 好美・慧", "addr": "旭川市東光11条2丁目2番7-2号", "tel": "090-6999-5295"}, {"no": "401193", "name": "宇野 貴寛・純子", "addr": "旭川市東光12条1丁目2番22-2号", "tel": "090-2072-7728"}, {"no": "401194", "name": "林 郁弥", "addr": "砂川市東4条南6丁目１番３号", "tel": "080-2875-9380"}, {"no": "401195", "name": "牧野 友洋", "addr": "旭川市春光6条5丁目14番13号", "tel": "090-6991-3155"}, {"no": "401196", "name": "苅谷 一星・萌", "addr": "旭川市神楽6条8丁目1番1号", "tel": "090-9752-5573"}, {"no": "401197", "name": "大谷 章太", "addr": "旭川市東光25条6丁目1番23号", "tel": "080-5584-7817"}, {"no": "401198", "name": "大橋 丹", "addr": "旭川市永山6条9丁目１番２０号", "tel": "090-6697-6391"}, {"no": "401199", "name": "株式会社 向山工務店（矢野 翠・喜一）", "addr": "上川郡東川町3944番", "tel": "090-3115-5785"}, {"no": "401200", "name": "小林 光・有沙", "addr": "旭川市神楽2条10丁目6番11号", "tel": "090-6991-5628"}, {"no": "401201", "name": "井上 貴広・るり子", "addr": "旭川市東光11条4丁目3番19号", "tel": "090-4870-4969"}, {"no": "401202", "name": "中川 駿", "addr": "旭川市東光12条4丁目2番2号", "tel": "090-1523-4049"}, {"no": "401203", "name": "岡村 国茂", "addr": "旭川市旭神2条2丁目", "tel": "080-5580-6363"}, {"no": "401204", "name": "澤井 弦記", "addr": "旭川市末広5条11丁目", "tel": "080-1898-1240"}, {"no": "401205", "name": "加藤 壮馬・真彩", "addr": "旭川市末広5条9丁目5番7号", "tel": "090-8895-7468"}, {"no": "401206", "name": "牧野 裕也", "addr": "旭川市大町1条9丁目20番地の131", "tel": "090-7683-6553"}, {"no": "401207", "name": "野田 一生・秀美", "addr": "旭川市8条通24丁目", "tel": "070-8487-0798"}, {"no": "401208", "name": "伊林 良", "addr": "旭川市西神楽南1条4丁目251番地の34", "tel": "090-6212-0259"}, {"no": "401209", "name": "堤 匠", "addr": "名寄市東5条北4丁目41番地22", "tel": "090-6218-7707"}, {"no": "401210", "name": "朝倉 礼菜", "addr": "上川郡当麻町中央三区", "tel": "080-3299-5191"}, {"no": "401211", "name": "佐藤 大樹", "addr": "枝幸町乙忠部８６７番", "tel": "090-6873-5355"}, {"no": "401212", "name": "横山 慶・梓", "addr": "旭川市豊岡9条5丁目2番6号", "tel": "080-3239-6618"}, {"no": "401213", "name": "渡辺 翔太・華奈", "addr": "上川郡東川町西10号北20番地", "tel": "090-6445-1630"}, {"no": "401214", "name": "小早川 謙太", "addr": "旭川市忠和5条1丁目4番2号", "tel": "090-7517-5810"}, {"no": "401215", "name": "秋元 苑夏", "addr": "旭川市大町1条9丁目20番185", "tel": "080-6099-3719"}, {"no": "401216", "name": "谷 和哉・真衣", "addr": "上川郡鷹栖町北野東5条3丁目5番17号", "tel": "090-6690-7545"}, {"no": "401217", "name": "井上 典和", "addr": "旭川市永山6条10丁目3番18号", "tel": "090-2698-4728"}, {"no": "401218", "name": "清水 駿", "addr": "旭川市東光11条1丁目4番14号", "tel": "090-9528-6926"}, {"no": "401219", "name": "伊藤 えり", "addr": "旭川市旭岡6丁目7番地の5", "tel": "080-3318-1007"}, {"no": "401220", "name": "西島 圭哉・由香", "addr": "上川郡東川町東町3丁目5番10号", "tel": "080-6670-0558"}, {"no": "401221", "name": "杉本 大介・奈々", "addr": "深川市8条１７番11号", "tel": "０８０-３２３４-３４３３"}, {"no": "401222", "name": "水上 元気", "addr": "名寄市風連町字瑞生3196番地", "tel": "090-7053-5137"}, {"no": "401223", "name": "三浦 泰幸", "addr": "岩見沢市駒園5丁目2-6", "tel": "080-1887-5319"}, {"no": "401224", "name": "岩倉 竜矢", "addr": "雨竜郡北竜町字岩村6番地1", "tel": "080-1627-4611"}, {"no": "401225", "name": "川田 篤・瑠美", "addr": "旭川市神居1条14丁目1番14号", "tel": "080-5836-2647"}, {"no": "401226", "name": "阿部 元司", "addr": "旭川市8条西4丁目1番18号", "tel": "090-6213-5322"}, {"no": "401227", "name": "大美 健", "addr": "深川市西町19番25号", "tel": "080-1898-8747"}, {"no": "401228", "name": "森下 智也・絵理香", "addr": "旭川市末広2条2丁目", "tel": "080-6072-0871"}, {"no": "401229", "name": "陶 翔太", "addr": "旭川市神楽6条9丁目7番12号", "tel": "080-1871-9935"}, {"no": "401230", "name": "近井 孝幸", "addr": "旭川市東光1条1丁目3番19号", "tel": "090-5221-6677"}, {"no": "401231", "name": "佐々木 智彦", "addr": "雨竜郡妹背牛町朝妹背牛9641番地", "tel": "090-7511-0057父"}, {"no": "401232", "name": "太田 裕也・知世", "addr": "旭川市神楽岡13条3丁目2番7号", "tel": "080-3293-8310"}, {"no": "401233", "name": "西本 健太", "addr": "上川郡鷹栖町南2条1丁目4番15号", "tel": "090-6261-6858"}, {"no": "401234", "name": "佐野 雄平・芙弥子", "addr": "深川市3条24番31号", "tel": "090-6267-0015"}, {"no": "401235", "name": "白岡 大樹・加奈", "addr": "雨竜郡北竜町字碧水49番地21", "tel": "080-6062-7686"}, {"no": "401236", "name": "田中 竜乃介", "addr": "旭川市神楽岡11条6丁目4番8号", "tel": "090-6696-0230"}, {"no": "401237", "name": "小笠原 竜史・史乃", "addr": "士別市東8条5丁目1番地6", "tel": "080-5732-6273"}, {"no": "401238", "name": "北本 由美子", "addr": "旭川市忠和7条6丁目1番2号", "tel": "090-2050-5191"}, {"no": "401239", "name": "馬方 亮汰", "addr": "旭川市曙3条6丁目1番１１号", "tel": "090-8228-5635"}, {"no": "401240", "name": "向江 大樹・優佳", "addr": "旭川市大町1条16丁目307番地の66", "tel": "090-6872-1294"}, {"no": "401241", "name": "佐藤 慎吾", "addr": "旭川市1条11丁目385番地の2", "tel": "090-8429-3008"}, {"no": "401242", "name": "森中 光子", "addr": "旭川市永山9条12丁目1番19号", "tel": "090-5117-3627"}, {"no": "401243", "name": "宮崎 亮平", "addr": "深川市6条14番6号", "tel": "090-2693-8994"}, {"no": "401244", "name": "西山 慎利", "addr": "旭川市神楽5条7丁目2番28号", "tel": "090-7640-5590"}, {"no": "401245", "name": "生田 雄也・祐里", "addr": "旭川市神楽6条13丁目5番６号", "tel": "080-1891-6734"}, {"no": "401246", "name": "宮本 直樹", "addr": "士別市西3条8丁目125番地10", "tel": "080-1872-0540"}, {"no": "401247", "name": "刈谷 優介・絢音", "addr": "旭川市永山8条3丁目4番13号", "tel": "080-1884-9520"}, {"no": "401248", "name": "髙松 秀介・くるみ", "addr": "滝川市黄金町東２丁目６番８号", "tel": "080-3293-9850"}, {"no": "401249", "name": "永澤 央彬", "addr": "旭川市緑町21丁目2741番地の39", "tel": "080-1897-9747"}, {"no": "401250", "name": "阪本 一真・葵", "addr": "新十津川町字中央348番地3", "tel": "090-5959-7292"}, {"no": "401251", "name": "三宅 貴", "addr": "旭川市旭町1条14丁目2146番地の108", "tel": "090-3394-6386"}, {"no": "401252", "name": "大野 雅貴", "addr": "枝幸郡浜頓別町南3条2丁目26-8", "tel": "090-8267-7958"}, {"no": "401253", "name": "浅利 優", "addr": "旭川市緑が丘2条1丁目1番地の3", "tel": "090-3890-0433"}, {"no": "401254", "name": "櫛谷 拓実", "addr": "旭川市永山6条21丁目3番9号", "tel": "090-3779-2826"}, {"no": "401255", "name": "堀川 剛史", "addr": "旭川市錦町21丁目2162番地の96", "tel": "090-6266-2234"}, {"no": "401256", "name": "越後 哉太", "addr": "枝幸郡枝幸町新栄町536番地14", "tel": "080-6410-6329"}, {"no": "401257", "name": "去渡 佑輔", "addr": "上川郡当麻町4条西3丁目2番27号", "tel": "080-1884-0209"}, {"no": "401258", "name": "野呂田 玲二", "addr": "枝幸郡浜頓別町南3条2丁目２６番地の10", "tel": "090-9524-8748"}, {"no": "401259", "name": "山本 哲央・潤", "addr": "旭川市南1条26丁目491番地の44", "tel": "090-5076-5984"}, {"no": "401260", "name": "松本 侑樹", "addr": "旭川市東光25条6丁目1番22号", "tel": "080-6074-4514"}, {"no": "401261", "name": "小山 愛", "addr": "名寄市字徳田68番地69", "tel": "090-6999-6383"}, {"no": "401262", "name": "浪内 日雅・汐音", "addr": "旭川市神楽岡12条3丁目1番3号", "tel": "080-1877-3532"}, {"no": "401263", "name": "田綿 友梨", "addr": "旭川市神楽岡8条4丁目4番2-2号", "tel": "090-3775-8998"}, {"no": "401264", "name": "佐野 明美", "addr": "旭川市末広2条6丁目2番2号", "tel": "090-4873-8875"}, {"no": "401265", "name": "森 將太郎", "addr": "旭川市春光台3条9丁目3番地の8", "tel": "080-6046-3987"}, {"no": "401266", "name": "中島 慎太郎・千晶", "addr": "旭川市東光13条3丁目3番17号", "tel": "090-6217-9770"}, {"no": "401267", "name": "岡本 弘", "addr": "旭川市春光５条２丁目５番１５号", "tel": "080-9606-3391"}, {"no": "401268", "name": "石丸 大介", "addr": "旭川市神楽4条11丁目1番18号", "tel": "090-5983-7015"}, {"no": "401269", "name": "小野 聡美・良一", "addr": "旭川市北門15丁目2158番地の224", "tel": "090-6992-4827"}, {"no": "401270", "name": "林 大喜・千史", "addr": "旭川市東8条1丁目1番4号", "tel": "090-6216-5133"}, {"no": "401271", "name": "清水 直弥", "addr": "旭川市永山6条20丁目1番5号", "tel": "090-7057-3073"}, {"no": "401272", "name": "川端 俊文", "addr": "名寄市字徳田68番地57", "tel": "080-6072-4640"}, {"no": "401273", "name": "沢口 敦史", "addr": "上川郡鷹栖町北野東４条１丁目5-10", "tel": "090-4873-5714"}, {"no": "401274", "name": "冨田 竜生", "addr": "旭川市東光3条7丁目4番2号", "tel": "090-6873-2551"}, {"no": "401275", "name": "芹澤 宏幸", "addr": "旭川市春光5条7丁目２番２５号", "tel": "090-8706-7076"}, {"no": "401276", "name": "奥村 翔", "addr": "旭川市神楽岡8条3丁目2番2-2号", "tel": "080-1871-3079"}, {"no": "401277", "name": "荻野 雄斗・唯", "addr": "旭川市東光11条1丁目4番16号", "tel": "090-6871-6132"}, {"no": "401278", "name": "松本 朱江", "addr": "旭川市永山4条17丁目3番13号", "tel": "090-5985-8737"}, {"no": "401279", "name": "小田島 亮吾・愛花莉", "addr": "上富良野町大町1丁目", "tel": "090-9753-4759"}, {"no": "401280", "name": "館山 世那・奈々", "addr": "旭川市錦町12丁目3082番地の22", "tel": "080-1869-0686"}, {"no": "401281", "name": "澤田 康平・珠里", "addr": "空知郡上富良野町宮町3丁目11-72", "tel": "080-2862-4145"}, {"no": "401282", "name": "横山 規宏・淳子", "addr": "上川郡東川町キトウシ西1丁目1-10", "tel": "090-1527-2012"}, {"no": "401283", "name": "多田 翔平・栞", "addr": "雨竜郡沼田町南1条5丁目5番25号", "tel": "080-5595-0825"}, {"no": "401284", "name": "熊谷 修", "addr": "富良野市字学田", "tel": "090-3399-1973"}, {"no": "401285", "name": "髙野 裕之", "addr": "旭川市末広1条10丁目2-10-2", "tel": "090-9087-7987"}, {"no": "401286", "name": "阿部 修己・珠里", "addr": "旭川市神楽1条7丁目2番11号", "tel": "080-6036-3439"}, {"no": "401287", "name": "中田 早菜", "addr": "旭川市春光台3条6丁目4番12号", "tel": "090-6242-2185"}, {"no": "401288", "name": "安田 咲子", "addr": "旭川市神楽岡8条1丁目", "tel": "080-7818-9463"}, {"no": "401289", "name": "有馬 優人・汐音", "addr": "旭川市永山8条6丁目5番12号", "tel": "090-8274-3298"}, {"no": "401290", "name": "成澤 健太郎・萌衣", "addr": "雨竜郡沼田町南1条4丁目", "tel": "090-3394-8718"}, {"no": "401291", "name": "奥山 和浩", "addr": "上川郡比布町", "tel": "090-7650-7542"}, {"no": "401292", "name": "漆舘 昂希", "addr": "旭川市旭町1条14丁目2146番地の42", "tel": "090-6998-7170"}, {"no": "401293", "name": "渡邊 圭", "addr": "旭川市神楽岡10条2丁目4番10号", "tel": "080-6091-5030"}, {"no": "401294", "name": "林 成洋", "addr": "空知郡上富良野町1420番232", "tel": "080-5597-7314"}, {"no": "401295", "name": "髙橋 雄也・亜美", "addr": "苫前郡苫前町字苫前", "tel": "080-4507-2817"}, {"no": "401296", "name": "岡口 歩生", "addr": "旭川市神楽7条11丁目", "tel": "090-9756-2810"}, {"no": "401297", "name": "西木 貴洋", "addr": "空知郡上富良野町", "tel": "090-2059-1036"}, {"no": "401298", "name": "松倉 輝和", "addr": "旭川市東光3条7丁目4番9号", "tel": "080-9473-1420"}, {"no": "401299", "name": "中村 洸貴・璃世", "addr": "上川郡美瑛町大町1丁目", "tel": "080-1869-3005"}, {"no": "401300", "name": "武田 智宏", "addr": "旭川市豊岡9条1丁目", "tel": "090-6443-7041"}, {"no": "401301", "name": "中𠩤 卓也", "addr": "旭川市神居5条18丁目4番6号", "tel": "080-4047-2861"}, {"no": "401302", "name": "犬伏 勇斗", "addr": "旭川市北門町21丁目", "tel": "090-7516-5558"}, {"no": "401303", "name": "媚山 登茂子", "addr": "旭川市東旭川北１条6丁目", "tel": "090-1525-4251"}, {"no": "401304", "name": "和田 真児", "addr": "滝川市江部乙町東11丁目", "tel": "090-6996-8697"}, {"no": "401305", "name": "畠山 仁・七海", "addr": "旭川市神楽6条5丁目5番3-2号", "tel": "090-7654-1343"}, {"no": "401306", "name": "星野 倫太朗・有沙", "addr": "留萌市錦町3丁目66番1", "tel": "090-5228-7736"}, {"no": "401307", "name": "向山工務店 （2件目）", "addr": "上川郡東川町東7号北2番地", "tel": "090-3115-5785"}, {"no": "401308", "name": "宗宮 吏玖・瑠唯", "addr": "空知郡上富良野町本町4丁目2番14号", "tel": "080-8289-3669"}, {"no": "401309", "name": "藤井 颯・華菜恵", "addr": "旭川市末広1条11丁目5番25-2号", "tel": "090-8274-6665"}, {"no": "401310", "name": "旭 悠志", "addr": "上川郡東神楽町ひじり野北１条８丁目", "tel": "080-6061-6485"}, {"no": "401311", "name": "中島 利一", "addr": "深川市北光町3丁目1番24号", "tel": "090-3114-5744"}, {"no": "401312", "name": "清水 康史", "addr": "名寄市西１１条南１２丁目", "tel": "080-1892-0115"}, {"no": "401313", "name": "村田 知輝", "addr": "旭川市旭神2条2丁目", "tel": "090-5077‐2851"}, {"no": "401314", "name": "宮澤 宣嗣", "addr": "旭川市川端町4条8丁目", "tel": "090-6443-6870"}, {"no": "401315", "name": "鵜飼 辰徳", "addr": "雨竜郡妹背牛町字チクシベツ", "tel": "090-9526-6388"}, {"no": "401316", "name": "矢口 涼太", "addr": "芦別市北4条西3丁目", "tel": "00-2053-5532"}, {"no": "401317", "name": "島 有希", "addr": "歌志内市文珠1037番91", "tel": "080-6641-9017"}, {"no": "401318", "name": "蓼原 俊太", "addr": "上川郡東川町", "tel": "080-4467-8623"}, {"no": "401319", "name": "菅野 裕也・郁美", "addr": "旭川市末広2条11丁目", "tel": "080-1867-0187"}, {"no": "401320", "name": "小西 耕生・真歩", "addr": "滝川市東町8丁目", "tel": "080-6076-8924"}, {"no": "401321", "name": "内田 建太・芽衣", "addr": "旭川市末広4条9丁目", "tel": "080-6075-0744"}, {"no": "401322", "name": "古市 怜・恵", "addr": "名寄市風連町", "tel": "090-5222-5194"}, {"no": "401323", "name": "港 亘生・佳奈", "addr": "宗谷郡猿払村鬼志別東町", "tel": "090-3893-0804"}, {"no": "401324", "name": "大山 祐希", "addr": "旭川市住吉6条2丁目", "tel": "080-1882-9891"}, {"no": "401325", "name": "佐藤 佑樹", "addr": "樺戸郡新十津川町字中央", "tel": "090-8906-7536"}, {"no": "401326", "name": "今野 雄太", "addr": "上川郡東神楽町ひじり野北１条８丁目", "tel": "080-1882-5767"}, {"no": "401327", "name": "中野 勝太・薫音", "addr": "滝川市中島町4丁目", "tel": "090-2690-5844"}, {"no": "401328", "name": "野村 健太郎", "addr": "旭川市神楽2条2丁目", "tel": "090-2073-0637"}, {"no": "401329", "name": "松浦 成兆 ②", "addr": "深川市稲穂町2丁目", "tel": "090-8273-8793"}, {"no": "401330", "name": "高森 禎大・みのり", "addr": "旭川市豊岡7条4丁目", "tel": "090‐9757‐1290"}, {"no": "401331", "name": "村澤 圭亮②", "addr": "札幌市清田区北野1条1丁目", "tel": "080-3238-4452"}, {"no": "401332", "name": "上樂 一覚・美和子", "addr": "旭川市神居３条８丁目", "tel": "090-9621-8374"}, {"no": "401333", "name": "中屋 玲央・有依", "addr": "名寄市字徳田", "tel": "080-8296-8074"}, {"no": "401334", "name": "小西 汰門", "addr": "旭川市川端町3条10丁目", "tel": "080-1976-7174"}, {"no": "401335", "name": "工藤 英知", "addr": "滝川市東町2丁目", "tel": "080-6086-7622"}, {"no": "401336", "name": "長谷川 武史", "addr": "旭川市末広1条10丁目2番10号", "tel": "080-3290－6975"}, {"no": "401337", "name": "大木 真由美", "addr": "旭川市8条通19丁目", "tel": "090-7662-2676"}, {"no": "401338", "name": "鈴木 亮貴", "addr": "旭川市永山6条6丁目", "tel": "080-1890-0720"}, {"no": "401339", "name": "武澤 伸昭", "addr": "旭川市永山5条12丁目", "tel": "090-9522-5857"}, {"no": "401340", "name": "高橋 拓斗・かりん", "addr": "旭川市東光7条5丁目", "tel": "080-6073-2348"}, {"no": "401341", "name": "岩村 一輝・亜侑", "addr": "旭川市永山1条22丁目４番５－２号", "tel": "090-9517-5257"}, {"no": "401342", "name": "柴田 浩平", "addr": "苫前郡羽幌町南2条4丁目", "tel": "080-1889-9559"}, {"no": "401343", "name": "竹島 明弘・実千嘉", "addr": "雨竜郡妹背牛町字妹背牛", "tel": "090-9757-0441"}, {"no": "401344", "name": "田中 勇佑", "addr": "上川郡東川町北町3丁目", "tel": "090-6877-1411"}, {"no": "401345", "name": "佐藤 凱一", "addr": "旭川市東光12条8丁目50番39", "tel": "090-2051-5873"}, {"no": "401346", "name": "京藤 隼人", "addr": "深川市文光町", "tel": "080-5584-2937"}, {"no": "401347", "name": "山原 健", "addr": "旭川市東鷹栖1条4丁目", "tel": "090-7652-6122"}, {"no": "401348", "name": "越 信二", "addr": "旭川市神楽岡14条4丁目", "tel": "090-2819-1380"}, {"no": "401349", "name": "尾形 明日翔", "addr": "上川郡比布町西町1丁目", "tel": "090-8270-6518"}, {"no": "82", "name": "岡田 健太郎", "addr": "旭川市春光5条2丁目", "tel": "090-3393-3955"}, {"no": "55", "name": "加藤 航希・美理", "addr": "雨竜郡雨竜町満寿", "tel": "080-8295-4363"}, {"no": "65", "name": "鎌倉 光啓", "addr": "滝川市朝日町東1丁目", "tel": "080-5586-9235"}, {"no": "67", "name": "山内 悟・えり", "addr": "空知郡上富良野町本町4丁目", "tel": "090-5226-7132"}, {"no": "80", "name": "本間 陽祐", "addr": "旭川市東鷹栖東1条1丁目", "tel": "090-3257-1544"}, {"no": "77", "name": "嶋田 雅之", "addr": "滝川市朝日町東2丁目", "tel": "080-4503-0380"}, {"no": "68", "name": "塚田 大雅", "addr": "旭神2条2丁目", "tel": "080-4503-0380"}, {"no": "78", "name": "大野 紘・風香", "addr": "滝川市黄金町東2丁目", "tel": "090-8370-9936"}, {"no": "来期", "name": "請川 雅晃", "addr": "旭川市南9条２６丁目", "tel": "080-5597-5786"}, {"no": "57", "name": "佐々木 真司", "addr": "旭川市神居1条13丁目", "tel": "090-2072-3910"}, {"no": "51", "name": "井上 友香", "addr": "旭川市神楽6条9丁目", "tel": "090-9432-6268"}, {"no": "71", "name": "上野 峻弥", "addr": "樺戸郡新十津川町字中央", "tel": "090-2811-1474"}, {"no": "72", "name": "小川 諒", "addr": "旭川市東光5条5丁目", "tel": "080-6064-2424"}, {"no": "来期", "name": "谷口 拓己", "addr": "旭川市東鷹栖5線15号", "tel": "080-2872-2021"}, {"no": "49", "name": "佐伯 いずみ", "addr": "上川郡比布町2581-11.21", "tel": "080-4044-3569"}, {"no": "来期", "name": "遠藤 みゆき・健太", "addr": "名寄市西6条南1丁目", "tel": "090-9523-6548"}, {"no": "63", "name": "大前 恒明", "addr": "旭川市永山6条8丁目", "tel": "090-4872-7172"}, {"no": "73", "name": "古山 潤一", "addr": "上川郡ひじり野北１条8丁目", "tel": "090-6998-4220"}, {"no": "来期", "name": "木下 亘・香奈味", "addr": "旭川市豊岡12条6丁目", "tel": "090-9510-9294"}, {"no": "来期", "name": "阿部 茂紀", "addr": "旭川市末広東1条8丁目", "tel": "090-6213-6453"}, {"no": "来期", "name": "村井 紀太郎", "addr": "旭川市神楽1条8丁目", "tel": "070-4709-0508"}, {"no": "", "name": "柏葉 貴博・瑠南", "addr": "上川郡ひじり野北１条8丁目", "tel": "090-5981-1766"}, {"no": "空白工期62.69.76.77.79", "name": "", "addr": "", "tel": ""}, {"no": "56", "name": "中澤 慎司", "addr": "上川郡ひじり野北１条7丁目", "tel": "090-6443-4634"}, {"no": "44", "name": "川名 泰地", "addr": "上富良野町泉町２丁目", "tel": "080-4041-8378"}, {"no": "71", "name": "佐々木 洸斗・悠花", "addr": "旭川市東6条2丁目", "tel": "090-6260-1480"}, {"no": "", "name": "中山 到", "addr": "旭川市西神楽１線６号", "tel": "090‐6443ー0247"}, {"no": "62", "name": "谷 浩一・淑媛", "addr": "空知郡中富良野町", "tel": "090-9080-4186"}, {"no": "39", "name": "阿部 正信", "addr": "旭川市北門町20丁目", "tel": "070-8999-0565"}, {"no": "29（4/中）", "name": "川島 唯志", "addr": "旭川市神居1条3丁目", "tel": "090-4872-7289"}, {"no": "78", "name": "井向 耀一", "addr": "樺戸郡新十津川町花月", "tel": "080-6069-6279"}, {"no": "33（4/中）", "name": "太田 雄", "addr": "旭川市東光7条6丁目", "tel": "090-3777-6720"}, {"no": "46", "name": "伊羅子 景涼", "addr": "旭川市東光9条2丁目", "tel": "090-7514-2416"}, {"no": "58", "name": "和田 翔樹・瑠那", "addr": "名寄市西13条南1丁目", "tel": "080-9006-7748"}, {"no": "18（3/上）", "name": "山下 將平・遥子", "addr": "旭川市北門町19丁目", "tel": "080-6099-6304"}, {"no": "51", "name": "齋藤 幸生", "addr": "旭川市神楽5条1丁目", "tel": "080-5952-8230"}, {"no": "71", "name": "池田 智士", "addr": "空知郡上富良野町宮町1丁目", "tel": "080-1869-2931"}, {"no": "", "name": "東 和郎", "addr": "旭川市旭岡1丁目", "tel": "070-8954-8940"}, {"no": "", "name": "増田 篤洋", "addr": "旭川市旭町1条16丁目", "tel": "080-6569-2774"}, {"no": "来期", "name": "福川 隼人", "addr": "上川郡剣淵町元町7", "tel": "080-6084-7224"}, {"no": "建売", "name": "池田 人樹・風華", "addr": "旭川市末広1条10丁目2番10号", "tel": "080-6087-8269"}, {"no": "来期", "name": "伊藤 優志・愛花", "addr": "砂川市東4条南10丁目", "tel": "090-8908-7937"}, {"no": "来期", "name": "宇佐見 雄大", "addr": "旭川市神居5条9丁目", "tel": "080-5837-3620"}, {"no": "建売", "name": "中村 昴永", "addr": "旭川市末広1条10丁目", "tel": "080-5722-9511"}, {"no": "来期", "name": "小野寺 優", "addr": "旭川市豊岡7条6丁目68-79", "tel": "090-6216-3249"}, {"no": "来期", "name": "財前 圭佑", "addr": "旭川市秋月３条２丁目", "tel": "090-8628-5218"}, {"no": "来期", "name": "大久保 賢人", "addr": "旭川市末広東2条3丁目", "tel": "080-6010-9489"}, {"no": "", "name": "山田 樹", "addr": "旭川市神楽岡8条5丁目", "tel": "090-6698-1962"}, {"no": "来期", "name": "西島 大介", "addr": "旭川市東旭川町", "tel": "090-5981-1464"}, {"no": "", "name": "清水 健太・彩", "addr": "滝川市栄町2丁目", "tel": "090-1523-9690"}, {"no": "", "name": "軽木 心・友美", "addr": "旭川市豊岡5条1丁目３番8", "tel": "090-2055-5923"}, {"no": "", "name": "山中 佑介", "addr": "旭川市神居１条11丁目", "tel": "090-9522-3647"}, {"no": "", "name": "髙橋一彦・奈緒", "addr": "深川市開西町2丁目", "tel": "090-3417-2113"}, {"no": "", "name": "佐羽内 謙一", "addr": "旭川市春光5条1丁目", "tel": "080-3260-4323"}, {"no": "", "name": "前田 かおり", "addr": "旭川市永山6条9丁目", "tel": "090-3019-4987"}, {"no": "", "name": "田中 浩平", "addr": "上川郡当麻町6条東4丁目", "tel": "080-9983-8000"}, {"no": "", "name": "貝谷 結子", "addr": "上川郡東川町東8号北1丁目", "tel": "080-8423-5430"}, {"no": "", "name": "田渕 遼・綾香", "addr": "旭川市東光１条６丁目", "tel": "090-3773-2493"}, {"no": "", "name": "村越 勇斗", "addr": "士別市大通西18丁目", "tel": "090-5226-3925"}, {"no": "", "name": "馬場 博明", "addr": "上川郡東川町4177番", "tel": "090-3393-0540"}, {"no": "", "name": "千葉 祐貴", "addr": "旭川市神楽3条4丁目", "tel": "090-2054-7564"}, {"no": "", "name": "中島 茂俊", "addr": "旭川市豊岡5条3丁目", "tel": "090-9750-5326"}, {"no": "", "name": "石井 敬一", "addr": "旭川市南1条通26丁目", "tel": "090-1063-4908"}, {"no": "", "name": "石橋 尚樹", "addr": "旭川市４条7丁目", "tel": "090-7519-7234"}, {"no": "", "name": "島尻 純一", "addr": "旭川市豊岡7条6丁目", "tel": "090-7653-1393"}, {"no": "", "name": "石塚 虎之介・真彩", "addr": "緑が丘3条1丁目2番37", "tel": "090-6212-5818"}, {"no": "", "name": "三石 遥菜", "addr": "旭川市春光4条9丁目", "tel": "080-3726-6163"}, {"no": "", "name": "野宮 僚", "addr": "旭川市神楽岡8条1丁目", "tel": "080-8287-4150"}, {"no": "", "name": "宋 勇錫", "addr": "旭川市神楽2条10丁目", "tel": "080-4131-0899"}, {"no": "", "name": "浮田 智明・もも子", "addr": "雨竜郡秩父別町字秩父別", "tel": "090-8370-4320"}, {"no": "", "name": "後藤 崇宏", "addr": "旭川市旭町1条14丁目", "tel": "080-5725-8694"}, {"no": "", "name": "佐藤 寿樹", "addr": "旭川市新星町3丁目", "tel": "080-6067-8936"}, {"no": "", "name": "泉 健吾・莉那", "addr": "旭川市神楽岡11条9丁目", "tel": "090-2877-3711"}, {"no": "", "name": "金田 雄介", "addr": "旭川市東旭川町下兵村", "tel": "090-6691-4100"}, {"no": "", "name": "岩本 拓真", "addr": "富良野市新光町", "tel": "080-1886-6806"}, {"no": "", "name": "鈴木 応徳", "addr": "旭川市豊岡5条3丁目", "tel": "080-3294-7171"}, {"no": "", "name": "澤 僚太", "addr": "滝川市空知町2丁目", "tel": "090-6991-0795"}, {"no": "", "name": "沼澤 孝之", "addr": "名寄市西10条北2丁目", "tel": "090-6223-9746"}, {"no": "", "name": "福田 晴美", "addr": "旭川市東光３条3丁目3-3", "tel": "0166-33-2496"}, {"no": "", "name": "對馬 康祐", "addr": "富良野市瑞穂町", "tel": "080-1813-7003"}, {"no": "", "name": "本間 健司", "addr": "旭川市東光14条4丁目", "tel": "090-1642-0425"}, {"no": "", "name": "中川原 丘人・麻由佳", "addr": "美瑛町大町1丁目", "tel": "090-7640-5739"}, {"no": "", "name": "渡辺 託麻・沙羅", "addr": "旭川市末広2条5丁目", "tel": "070-4795-4693"}, {"no": "", "name": "松居 真右子", "addr": "旭川市東光1条1丁目", "tel": "070-8930-2512"}, {"no": "", "name": "藪 晴樹", "addr": "中富良野町東8線北8号", "tel": "090-5953-0219"}, {"no": "", "name": "中嶋 由起", "addr": "上川郡東川町北町3丁目", "tel": "090-9376-1627"}, {"no": "", "name": "宮本 祐吾", "addr": "士別東7条7丁目", "tel": "080-1886-3025"}, {"no": "", "name": "上野 裕介", "addr": "上富良野町新町3丁目", "tel": "080-5599-6227"}, {"no": "", "name": "小足 限哉", "addr": "上川郡東神楽町字東神楽10号北1", "tel": "080-4043-2952"}, {"no": "", "name": "伊藤 亜美", "addr": "旭川市豊岡13条6丁目", "tel": "090-9432-6575"}, {"no": "", "name": "木村 壱成・知香", "addr": "旭川市末広2条9丁目", "tel": "080-1891-6399"}, {"no": "", "name": "山縣 一夫", "addr": "旭川市豊岡4条6丁目", "tel": "0166-33-4376"}, {"no": "", "name": "熊谷 拓也・真由子", "addr": "旭川市6条西3丁目", "tel": "090-6692-9792"}, {"no": "", "name": "千井野 聡", "addr": "富良野市字扇山", "tel": "080-5411-7753"}, {"no": "", "name": "廣瀬 純一", "addr": "深川市7条", "tel": "090-6997-0859"}, {"no": "", "name": "佐藤 正志", "addr": "旭川市東5条10丁目", "tel": "080-4501-3024"}, {"no": "", "name": "金 竜一", "addr": "旭川市3条通12丁目", "tel": "090-3398-8739"}, {"no": "", "name": "秋山 恭範", "addr": "滝川市東町2丁目", "tel": "090-8900-9656"}, {"no": "", "name": "佐々木 滋", "addr": "旭川市3条5丁目", "tel": "090-6215-3521"}, {"no": "", "name": "山本 拓", "addr": "旭川市末広2条13丁目", "tel": "080-1866-5937"}, {"no": "", "name": "荻子 智絵", "addr": "空知郡上富良野町大町1丁目", "tel": "090-9528-9028"}, {"no": "", "name": "佐藤 友二良・瑛里", "addr": "旭川市錦町15丁目", "tel": "090-6873-5578"}, {"no": "", "name": "平沼 昭德", "addr": "滝川市明神町4丁目", "tel": "090-9084-4294"}, {"no": "", "name": "片岡 政人・綾華", "addr": "旭川市東8条3丁目", "tel": "090-3154-5039"}, {"no": "", "name": "四辻 和也", "addr": "雨竜郡北竜町字碧水", "tel": "090-9521-8038"}, {"no": "", "name": "加藤 光", "addr": "滝川市栄町３丁目", "tel": "080-5593-0905"}, {"no": "", "name": "樋口 翔", "addr": "旭川市忠和5条3丁目", "tel": "090-3197-9781"}, {"no": "", "name": "河内 大輝", "addr": "上川郡東神楽町南1条西2丁目", "tel": "090-1384-7343"}, {"no": "", "name": "谷口 尚矢", "addr": "旭川市豊岡5条7丁目", "tel": "090-6446-3539"}, {"no": "", "name": "吉本 将悟", "addr": "旭川市末広4条9丁目", "tel": "090-8278-0287"}, {"no": "", "name": "岡島 凌太・紗理奈", "addr": "深川市北光町2丁目", "tel": "090-5989-1748"}, {"no": "", "name": "小川 瑞生", "addr": "名寄市西7条北8丁目", "tel": "090-3468-6449"}, {"no": "", "name": "東辻 俊平", "addr": "滝川市朝日町東1丁目", "tel": "090-5225-4478"}, {"no": "", "name": "大竹 悠太", "addr": "上川郡美瑛町北町1丁目", "tel": "080-4044-6212"}, {"no": "", "name": "安藤 拓也・麻理", "addr": "美瑛町大町1丁目", "tel": "090-6445-1864"}, {"no": "", "name": "木村 沙希子", "addr": "旭川市永山10条12丁目", "tel": "090-1060-9084"}, {"no": "", "name": "松木 一真", "addr": "旭川市末広2条15丁目", "tel": "090-2814-6584"}, {"no": "", "name": "谷内山 順矢", "addr": "上川郡東神楽町ひじり野南1条1丁目", "tel": "090-1641-4916"}, {"no": "", "name": "藤川 誉晃", "addr": "旭川市春光5条2丁目", "tel": "090-1384-8933"}, {"no": "", "name": "中野 敬太", "addr": "旭川市神居5条13丁目", "tel": "080-6093-4912"}, {"no": "", "name": "村上 さよ", "addr": "士別市西1条11丁目452-54", "tel": "080-5584-0244"}, {"no": "", "name": "米澤 隆太郎", "addr": "旭川市東光9条1丁目", "tel": "080-1865-0755"}, {"no": "", "name": "山川 寛司・亜美", "addr": "旭川市東5条9丁目", "tel": "080-3232-3975"}, {"no": "", "name": "領毛 忠史", "addr": "枝幸郡枝幸町新港町909-8", "tel": "090-3775-4078"}, {"no": "", "name": "栗山 雅広", "addr": "旭川市東光7条3丁目", "tel": "090-2812-0645"}, {"no": "", "name": "加野 直樹", "addr": "旭川市神居6条8丁目", "tel": "090-9085-7706"}, {"no": "", "name": "奥平 恵祐", "addr": "旭川市神居4条17丁目31-13", "tel": "080-1861-4498"}, {"no": "", "name": "中北 智也", "addr": "旭川市永山7条7丁目116番76､77", "tel": "090-9753-9957"}, {"no": "", "name": "橋本 健二", "addr": "富良野市緑町17-45", "tel": "090-9435-8494"}, {"no": "", "name": "町中 洸太・美里", "addr": "旭川市末広4条3丁目", "tel": "090-6261-9574"}, {"no": "", "name": "福井 史博", "addr": "札幌市厚別区もみじ台北5丁目", "tel": "090-9693-6750"}, {"no": "", "name": "北島 誠・知美", "addr": "旭川市神居2条15丁目", "tel": "090-3898-5962"}];
+
+function loadCSV(input) {
+  var file = input.files[0];
+  if (!file) return;
+  // Shift-JISで読み込み試行
+  var r1 = new FileReader();
+  r1.onload = function(e) {
+    var rows = tryParseCSV(e.target.result);
+    if (rows.length > 0) {
+      custDB = rows;
+      onCSVLoaded();
+    } else {
+      // UTF-8で再試行
+      var r2 = new FileReader();
+      r2.onload = function(e2) {
+        custDB = tryParseCSV(e2.target.result);
+        if (custDB.length > 0) { onCSVLoaded(); }
+        else { alert('データが読み込めませんでした。UTF-8またはShift-JISのCSVファイルを使用してください。'); }
+      };
+      r2.readAsText(file, 'UTF-8');
+    }
+  };
+  r1.readAsText(file, 'Shift_JIS');
+  input.value = '';
+}
+
+function onCSVLoaded() {
+  document.getElementById('csv-loaded').style.display = 'block';
+  document.getElementById('csv-count').textContent = custDB.length;
+  document.getElementById('csv-search-area').style.display = 'block';
+  document.getElementById('cust-search').value = '';
+  document.getElementById('cust-list').innerHTML = '<div class="cust-empty">名前・No・住所で検索してください</div>';
+  showToast(custDB.length + '件の顧客データを読み込みました');
+}
+
+function tryParseCSV(text) {
+  try {
+    var result = [];
+    // 改行コードを統一
+    var clean = '';
+    for (var i = 0; i < text.length; i++) {
+      var ch = text.charAt(i);
+      if (ch === '\r') {
+        clean += '\n';
+        if (i + 1 < text.length && text.charAt(i+1) === '\n') i++;
+      } else {
+        clean += ch;
+      }
+    }
+    var lines = clean.split('\n');
+
+    // ======================================================
+    // ヘッダー行を自動検出
+    // 「顧客NO.」「顧客名」「建設地」が含まれる行を探す
+    // ======================================================
+    var headerRow = -1;
+    var colNo = 0, colName = 1, colTel = 3, colAddr = 2; // デフォルト（標準CSV）
+
+    for (var h = 0; h < Math.min(lines.length, 10); h++) {
+      var hcols = splitLine(lines[h]);
+      for (var hc = 0; hc < hcols.length; hc++) {
+        var cell = hcols[hc].trim();
+        if (cell === '顧客NO.' || cell === '顧客No.' || cell === '顧客NO') {
+          colNo   = hc;
+          headerRow = h;
+        }
+        if (cell === '顧客名') colName = hc;
+        if (cell === '電話番号') colTel  = hc;
+        if (cell === '建設地')   colAddr = hc;
+      }
+      if (headerRow >= 0) break;
+    }
+
+    // データ開始行（ヘッダーの次の行から）
+    var startRow = headerRow >= 0 ? headerRow + 1 : 1;
+
+    for (var ln = startRow; ln < lines.length; ln++) {
+      var line = lines[ln];
+      if (!line || !line.trim()) continue;
+      var cols = splitLine(line);
+      var no   = cols.length > colNo   ? cols[colNo].trim()   : '';
+      var name = cols.length > colName ? cols[colName].trim() : '';
+      // 全角スペースを半角スペースに変換
+      name = name.replace(/　/g, ' ');
+      if (!no && !name) continue;
+      var tel  = cols.length > colTel  ? cols[colTel].trim()  : '';
+      var addr = cols.length > colAddr ? cols[colAddr].trim() : '';
+      result.push({ no: no, name: name, addr: addr, tel: tel, email: '' });
+    }
+    return result;
+  } catch(ex) {
+    return [];
+  }
+}
+
+function splitLine(line) {
+  var cols = [];
+  var cur = '';
+  var inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line.charAt(i);
+    if (ch === '"') {
+      if (inQ && i+1 < line.length && line.charAt(i+1) === '"') {
+        cur += '"'; i++;
+      } else {
+        inQ = !inQ;
+      }
+    } else if (ch === ',' && !inQ) {
+      cols.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  cols.push(cur);
+  return cols;
+}
+
+function searchCustomers(q) {
+  var list = document.getElementById('cust-list');
+  if (!q || !q.trim()) {
+    list.innerHTML = '<div class="cust-empty">名前・No・住所で検索してください</div>';
+    return;
+  }
+  var kw = q.toLowerCase();
+  var hits = [];
+  for (var i = 0; i < custDB.length; i++) {
+    var c = custDB[i];
+    if (c.name.toLowerCase().indexOf(kw) >= 0 ||
+        c.no.indexOf(kw) >= 0 ||
+        c.addr.toLowerCase().indexOf(kw) >= 0 ||
+        c.tel.indexOf(kw) >= 0) {
+      hits.push(c);
+      if (hits.length >= 30) break;
+    }
+  }
+  if (!hits.length) {
+    list.innerHTML = '<div class="cust-empty">見つかりませんでした</div>';
+    return;
+  }
+  var html = '';
+  for (var j = 0; j < hits.length; j++) {
+    var h = hits[j];
+    html += '<div class="cust-item"'
+      + ' data-no="' + esc(h.no) + '"'
+      + ' data-name="' + esc(h.name) + '"'
+      + ' data-addr="' + esc(h.addr) + '"'
+      + ' data-tel="' + esc(h.tel) + '"'
+      + ' onclick="selCust(this)">'
+      + '<div class="cust-name">' + h.name
+      + (h.no ? '<span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:6px;">No.' + h.no + '</span>' : '')
+      + '</div>'
+      + '<div class="cust-meta">' + h.addr + (h.tel ? '&nbsp;&nbsp;' + h.tel : '') + '</div>'
+      + '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function selCust(el) {
+  var no   = el.getAttribute('data-no');
+  var name = el.getAttribute('data-name');
+  var addr = el.getAttribute('data-addr');
+  var tel  = el.getAttribute('data-tel');
+  document.getElementById('f-no').value   = no;
+  document.getElementById('f-name').value = name;
+  document.getElementById('f-addr').value = addr;
+  document.getElementById('f-tel').value  = tel;
+  document.getElementById('sel-name-disp').textContent = name + ' 様' + (no ? '（No.' + no + '）' : '');
+  document.getElementById('sel-meta-disp').textContent = addr + (tel ? '　' + tel : '');
+  document.getElementById('selected-cust').style.display = 'block';
+  document.getElementById('csv-search-area').style.display = 'none';
+  showToast(name + ' 様を選択しました');
+}
+
+function clearSelectedCustomer() {
+  document.getElementById('selected-cust').style.display = 'none';
+  document.getElementById('csv-search-area').style.display = 'block';
+  document.getElementById('cust-search').value = '';
+  document.getElementById('cust-list').innerHTML = '<div class="cust-empty">名前・No・住所で検索してください</div>';
+  document.getElementById('f-no').value = '';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-addr').value = '';
+  document.getElementById('f-tel').value = '';
+}
+
+function clearSearch() {
+  document.getElementById('cust-search').value = '';
+  document.getElementById('cust-list').innerHTML = '<div class="cust-empty">名前・No・住所で検索してください</div>';
+}
+
+// ユーティリティ
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 3000);
+}
+</script>
+</body>
+</html>
